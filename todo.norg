@@ -1,0 +1,66 @@
+* General outline
+  - ( ) create user
+  - ( ) login
+
+  - ( ) customize profile
+  -- ( ) create bio
+  -- ( ) custom avatar
+  -- ( ) pronouns :3
+  -- ( ) change password
+  -- ( ) change privacy settings
+
+ -- ( ) create new board
+  -- ( ) edit board description
+
+  - ( ) make post
+  - ( ) edit post
+  - ( ) make comment
+  - ( ) edit comment
+
+  - ( ) moderation
+  -- ( ) delete comments
+  -- ( ) delete posts
+  -- ( ) modify comments
+  -- ( ) modify posts
+
+  - ( ) administration
+  -- ( ) add comments
+  -- ( ) add posts
+  -- ( ) modify comments
+  -- ( ) modify posts
+  -- ( ) delete comments
+  -- ( ) delete posts
+
+  - ( ) upvotes/downvotes
+
+  - ( ) send notifications on answers to your comments
+
+  - ( ) search by keywords
+  - ( ) sort by categories
+
+  - ( ) ranking of most popular posts
+  - ( ) ranking of most popular people (most upvotes)
+
+** Frontend
+   - ( ) create user/login
+   -- ( ) profile view
+   -- ( ) main page
+   -- ( ) boards
+   --- ( ) posts
+   ---- ( ) comments
+   - ( ) search boards/posts/users
+
+** Backend
+   - ( ) get posts
+   - ( ) search
+   - ( ) create user
+   - ( ) create board
+   - ( ) create posts
+   - ( ) create comment on a post
+   - ( ) edit user
+   - ( ) edit board
+   - ( ) edit posts
+   - ( ) edit comment on a post
+   - ( ) upvote/downvote a post/comment
+   - ( ) edit user data
+   - ( ) reset password
