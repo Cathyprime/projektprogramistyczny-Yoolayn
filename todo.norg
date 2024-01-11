@@ -50,17 +50,24 @@
    ---- ( ) comments
    - ( ) search boards/posts/users
 
-** Backend
-   - ( ) get posts
-   - ( ) search
-   - ( ) create user
-   - ( ) create board
-   - ( ) create posts
-   - ( ) create comment on a post
-   - ( ) edit user
-   - ( ) edit board
-   - ( ) edit posts
-   - ( ) edit comment on a post
-   - ( ) upvote/downvote a post/comment
-   - ( ) edit user data
-   - ( ) reset password
+** Api
+*** Posts:
+    - Create a post:               POST   \/api/posts
+    - Read all posts:              GET    \/api/posts
+    - Read a specific post:        GET    \/api/posts/:postId
+    - Update a post:               PUT    \/api/posts/:postId
+    - Delete a post:               DELETE \/api/posts/:postId
+
+*** Comments:
+    - Create a comment:            POST   \/api/posts/:postId/comments
+    - Read all comments on a post: GET    \/api/posts/:postId/comments
+    - Read a specific comment:     GET    \/api/posts/:postId/comments/:commentId
+    - Update a comment:            PUT    \/api/posts/:postId/comments/:commentId
+    - Delete a comment:            DELETE \/api/posts/:postId/comments/:commentId
+
+*** Users:
+    - Create a user:               POST   \/api/users
+    - Read all users:              GET    \/api/users
+    - Read a specific user:        GET    \/api/users/:userId
+    - Update a user:               PUT    \/api/users/:userId
+    - Delete a user:               DELETE \/api/users/:userId

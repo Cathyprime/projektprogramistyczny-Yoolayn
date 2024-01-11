@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -19,13 +23,47 @@ var (
 	}
 )
 
+type connection struct {
+	con *mongo.Client
+	err error
+}
+
+func setupMongo(ch chan<- connection) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUri).SetAuth(auth))
+	ch <- connection{
+		con: client,
+		err: err,
+	}
+}
+
+func createHelloWorld(ctx context.Context, c *mongo.Collection) *mongo.InsertOneResult {
+	result, err := c.InsertOne(ctx, bson.M{
+		"message": "hello_world!",
+	})
+	if err != nil {
+		log.Fatal("Failed to add to collection", err)
+	}
+	return result
+}
+
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUri).SetAuth(auth))
-	if err != nil {
-		log.Fatal(err)
+
+	ch := make(chan connection)
+	defer close(ch)
+	go setupMongo(ch)
+
+	var client *mongo.Client
+	connectionResult := <-ch
+	if connectionResult.err != nil {
+		log.Fatal(connectionResult.err)
 	}
+
+	client = connectionResult.con
 	defer func() {
 		err := client.Disconnect(ctx)
 		if err != nil {
@@ -35,25 +73,49 @@ func main() {
 
 	db := client.Database("redoot")
 	users := db.Collection("users")
-	result, err := users.InsertOne(ctx, bson.M{
-		"message": "hello_world!",
+
+	r := gin.Default()
+	r.GET("/", func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+		defer cancel()
+
+		filter := bson.M{"_id": createHelloWorld(ctx, users).InsertedID}
+		var resultFind struct {
+			Message string `bson:"message"`
+		}
+
+		err := users.FindOne(ctx, filter).Decode(&resultFind)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		c.String(http.StatusOK, resultFind.Message)
 	})
-	if err != nil {
-		log.Fatal("Failed to add to collection", err)
+
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
 	}
 
-	filter := bson.M{"_id": result.InsertedID}
-	var resultFind struct {
-		Message string `bson:"message"`
-	}
-	err = users.FindOne(ctx, filter).Decode(&resultFind)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(resultFind)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
 
-	err = users.Drop(ctx)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutdown Server...")
+
+	quitCtx, quitCancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer quitCancel()
+	if err := srv.Shutdown(quitCtx); err != nil {
+		log.Fatal("Error Shutting down: ", err)
+	}
+
+	err := users.Drop(quitCtx)
 	if err != nil {
-		log.Fatal("Failed to drop users", err)
+		log.Fatal("Failed to drop users ", err)
 	}
 }
