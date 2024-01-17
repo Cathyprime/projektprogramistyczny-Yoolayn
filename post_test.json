@@ -2,7 +2,8 @@
   "post": {
     "user": {
       "name": "name",
-      "Id": "ad9216f9-5adc-4973-b804-c83a92c9e8e4"
+      "login": "login",
+      "password": "password"
     },
     "title": "title",
     "body": "post body"

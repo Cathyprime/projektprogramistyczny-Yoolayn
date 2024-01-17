@@ -39,16 +39,6 @@ func setupMongo(ch chan<- connection) {
 	}
 }
 
-func createHelloWorld(ctx context.Context, c *mongo.Collection) *mongo.InsertOneResult {
-	result, err := c.InsertOne(ctx, bson.M{
-		"message": "hello_world!",
-	})
-	if err != nil {
-		log.Fatal("Failed to add to collection", err)
-	}
-	return result
-}
-
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
@@ -78,7 +68,6 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 		defer cancel()
-
 		filter := bson.M{"_id": createHelloWorld(ctx, users).InsertedID}
 		var resultFind struct {
 			Message string `bson:"message"`
@@ -91,9 +80,9 @@ func main() {
 
 		c.String(http.StatusOK, resultFind.Message)
 	})
-	r.POST("/post", func(c *gin.Context) {
-		newPost(c, users)
-	})
+	r.POST("/posts", func(c *gin.Context) { newPost(c, users) })
+	r.GET("/users", func(c *gin.Context) { getUsers(c, users) })
+	r.POST("/users", func(c *gin.Context) { newUser(c, users) })
 
 	srv := &http.Server{
 		Addr:    ":8080",

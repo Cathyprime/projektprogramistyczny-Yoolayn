@@ -1,18 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/goccy/go-json"
-	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type User struct {
-	Name string    `json:"name"`
-	Id   uuid.UUID `json:"id"`
+	Name     string `json:"name"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
 type Post struct {
@@ -22,19 +24,62 @@ type Post struct {
 }
 
 func newPost(c *gin.Context, coll *mongo.Collection) {
-	post := struct {
+	body := struct {
 		Post Post `json:"post"`
 	}{}
-	err := c.BindJSON(&post)
+
+	err := c.BindJSON(&body)
 	if err != nil {
-		log.Fatal("binding ", err)
+		_ = c.AbortWithError(500, err)
+		return
 	}
 
-	jsonPost, err := json.MarshalIndent(post, "", "  ")
+	c.IndentedJSON(200, body)
+}
+
+func getUsers(c *gin.Context, users *mongo.Collection) {
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	createSampleUsers(ctx, users)
+	cursor, err := users.Find(ctx, bson.D{})
 	if err != nil {
+		fmt.Println("find err")
+		log.Fatal(err)
+		_ = c.AbortWithError(500, err)
+		return
+	}
+
+	results := []bson.M{}
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		fmt.Println("results err")
+		log.Fatal(err)
+		_ = c.AbortWithError(500, err)
+		return
+	}
+
+	if err := cursor.Err(); err != nil {
+		log.Fatal(err)
+		_ = c.AbortWithError(500, err)
+		fmt.Println("cursor err")
+		return
+	}
+
+	fmt.Println(results)
+	c.IndentedJSON(200, results)
+	if err := cursor.Close(ctx); err != nil {
 		log.Fatal(err)
 	}
+}
 
-	fmt.Println(string(jsonPost))
-	c.IndentedJSON(200, post)
+func newUser(c *gin.Context, users *mongo.Collection) {
+	body := struct {
+		User User `json:"user"`
+	}{}
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		_ = c.AbortWithError(500, err)
+		return
+	}
+	c.IndentedJSON(200, body)
 }
