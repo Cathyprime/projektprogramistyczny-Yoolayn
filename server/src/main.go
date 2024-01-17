@@ -91,6 +91,9 @@ func main() {
 
 		c.String(http.StatusOK, resultFind.Message)
 	})
+	r.POST("/post", func(c *gin.Context) {
+		newPost(c, users)
+	})
 
 	srv := &http.Server{
 		Addr:    ":8080",

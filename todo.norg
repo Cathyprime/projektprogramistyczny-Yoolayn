@@ -52,22 +52,23 @@
 
 ** Api
 *** Posts:
-    - Create a post:               POST   \/api/posts
-    - Read all posts:              GET    \/api/posts
-    - Read a specific post:        GET    \/api/posts/:postId
-    - Update a post:               PUT    \/api/posts/:postId
-    - Delete a post:               DELETE \/api/posts/:postId
+    - Create a post:                POST       \/api/posts
+    - Read all posts:               GET        \/api/posts
+    - Read a specific post:         GET        \/api/posts/:postId
+    - Update a post:                PUT        \/api/posts/:postId
+    - Delete a post:                DELETE     \/api/posts/:postId
 
 *** Comments:
-    - Create a comment:            POST   \/api/posts/:postId/comments
-    - Read all comments on a post: GET    \/api/posts/:postId/comments
-    - Read a specific comment:     GET    \/api/posts/:postId/comments/:commentId
-    - Update a comment:            PUT    \/api/posts/:postId/comments/:commentId
-    - Delete a comment:            DELETE \/api/posts/:postId/comments/:commentId
+    - Create a comment:             POST       \/api/posts/:postId/comments
+    - Read all comments on a post:  GET        \/api/posts/:postId/comments
+    - Read a specific comment:      GET        \/api/posts/:postId/comments/:commentId
+    - Update a comment:             PUT        \/api/posts/:postId/comments/:commentId
+    - Delete a comment:             DELETE     \/api/posts/:postId/comments/:commentId
 
 *** Users:
-    - Create a user:               POST   \/api/users
-    - Read all users:              GET    \/api/users
-    - Read a specific user:        GET    \/api/users/:userId
-    - Update a user:               PUT    \/api/users/:userId
-    - Delete a user:               DELETE \/api/users/:userId
+    - Create a user:                POST       \/api/users
+    - Read all users:               GET        \/api/users
+    - Read a specific user:         GET        \/api/users/:userId
+    - Update a user:                PUT        \/api/users/:userId
+    - Delete a user:                DELETE     \/api/users/:user   Id
+    - Login a user                  CONNECT    \/api/users/:userid
