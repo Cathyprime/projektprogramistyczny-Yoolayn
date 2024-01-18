@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"context"
@@ -23,7 +23,7 @@ type Post struct {
 	Body  string `json:"body"`
 }
 
-func newPost(c *gin.Context, coll *mongo.Collection) {
+func NewPost(c *gin.Context, coll *mongo.Collection) {
 	body := struct {
 		Post Post `json:"post"`
 	}{}
@@ -37,7 +37,7 @@ func newPost(c *gin.Context, coll *mongo.Collection) {
 	c.IndentedJSON(200, body)
 }
 
-func getUsers(c *gin.Context, users *mongo.Collection) {
+func GetUsers(c *gin.Context, users *mongo.Collection) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	createSampleUsers(ctx, users)
@@ -71,7 +71,7 @@ func getUsers(c *gin.Context, users *mongo.Collection) {
 	}
 }
 
-func newUser(c *gin.Context, users *mongo.Collection) {
+func NewUser(c *gin.Context, users *mongo.Collection) {
 	body := struct {
 		User User `json:"user"`
 	}{}

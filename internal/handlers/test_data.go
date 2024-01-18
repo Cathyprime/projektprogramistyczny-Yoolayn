@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 // 	Password string `json:"password"`
 // }
 
-func createHelloWorld(ctx context.Context, c *mongo.Collection) *mongo.InsertOneResult {
+func CreateHelloWorld(ctx context.Context, c *mongo.Collection) *mongo.InsertOneResult {
 	result, err := c.InsertOne(ctx, bson.M{
 		"message": "hello_world!",
 	})

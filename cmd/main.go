@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/handlers"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -68,7 +69,7 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 		defer cancel()
-		filter := bson.M{"_id": createHelloWorld(ctx, users).InsertedID}
+		filter := bson.M{"_id": handlers.CreateHelloWorld(ctx, users).InsertedID}
 		var resultFind struct {
 			Message string `bson:"message"`
 		}
@@ -80,9 +81,9 @@ func main() {
 
 		c.String(http.StatusOK, resultFind.Message)
 	})
-	r.POST("/posts", func(c *gin.Context) { newPost(c, users) })
-	r.GET("/users", func(c *gin.Context) { getUsers(c, users) })
-	r.POST("/users", func(c *gin.Context) { newUser(c, users) })
+	r.POST("/posts", func(c *gin.Context) { handlers.NewPost(c, users) })
+	r.GET("/users", func(c *gin.Context) { handlers.GetUsers(c, users) })
+	r.POST("/users", func(c *gin.Context) { handlers.NewUser(c, users) })
 
 	srv := &http.Server{
 		Addr:    ":8080",
