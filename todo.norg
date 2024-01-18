@@ -70,5 +70,5 @@
     - Read all users:               GET        \/api/users
     - Read a specific user:         GET        \/api/users/:userId
     - Update a user:                PUT        \/api/users/:userId
-    - Delete a user:                DELETE     \/api/users/:user   Id
+    - Delete a user:                DELETE     \/api/users/:userId
     - Login a user                  CONNECT    \/api/users/:userid

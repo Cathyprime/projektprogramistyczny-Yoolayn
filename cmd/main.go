@@ -81,6 +81,7 @@ func main() {
 
 		c.String(http.StatusOK, resultFind.Message)
 	})
+
 	r.POST("/posts", func(c *gin.Context) { handlers.NewPost(c, users) })
 	r.GET("/users", func(c *gin.Context) { handlers.GetUsers(c, users) })
 	r.POST("/users", func(c *gin.Context) { handlers.NewUser(c, users) })

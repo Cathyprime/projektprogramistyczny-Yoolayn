@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -81,5 +82,11 @@ func NewUser(c *gin.Context, users *mongo.Collection) {
 		_ = c.AbortWithError(500, err)
 		return
 	}
+	json, err := json.MarshalIndent(body, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(string(json))
 	c.IndentedJSON(200, body)
 }
