@@ -120,6 +120,6 @@
     - (x) Read all users:               GET            \/api/users
     - (x) Read a specific user:         GET            \/api/users/:userId
     - (x) Update a user:                PUT            \/api/users/:userId
-    - ( ) Delete a user:                DELETE         \/api/users/:userId
+    - (x) Delete a user:                DELETE         \/api/users/:userId
     - ( ) Login a user                  CONNECT        \/api/users/:userid
     - ( ) Search for user:              GET            \/api/users?

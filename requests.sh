@@ -16,8 +16,11 @@ get_users              # get all users
 add_then_get           # find user of id
 get_bad                # get not existant user
 add_then_update        # update user
-add_then_update_bad    # update user
+add_then_update_bad    # update user non existant
 add_then_update_noauth # try to update with wrong credentials
+create_delete_get      # delete user
+delete_bad             # delete non existant
+delete_noauth          # delete without authorization
 '
 
 # Make a post
@@ -26,7 +29,7 @@ function new_post() {
          -H 'Content-Type: application/json' \
          -d '@./requests/post_test.json'     \
          2>/dev/null                         \
-         | jq
+    | jq
 }
 
 # Get all users
@@ -40,7 +43,7 @@ function new_user() {
          -H 'Content-Type: application/json' \
          -d '@./requests/user_test.json'     \
          2>/dev/null                         \
-         | jq
+    | jq
 }
 
 function add_then_get() {
@@ -74,10 +77,10 @@ function add_then_update() {
     json=$(jq -s '.[0] * .[1]' requests/update_user.json <(echo "{\"requester\": {\"id\": \"$id\"}}"))
 
     echo "update response: "
-    curl -X PUT "$url"                  \
-    -H 'Content-Type: application/json' \
-    -d "$json"                          \
-    2>/dev/null                         \
+    curl -X PUT "$url"                      \
+        -H 'Content-Type: application/json' \
+        -d "$json"                          \
+        2>/dev/null                         \
     | jq
 
     echo "updated to:"
@@ -90,10 +93,10 @@ function add_then_update_bad() {
     local json
     json=$(jq -s '.[0] * .[1]' requests/update_user.json <(echo "{\"requester\": {\"id\": \"$id\"}}"))
 
-    curl -X PUT "$url"                  \
-    -H 'Content-Type: application/json' \
-    -d "$json"                          \
-    2>/dev/null                         \
+    curl -X PUT "$url"                      \
+        -H 'Content-Type: application/json' \
+        -d "$json"                          \
+        2>/dev/null                         \
     | jq
 }
 
@@ -103,16 +106,53 @@ function add_then_update_noauth() {
     local json
     json=$(jq -s '.[0] * .[1]' requests/update_user.json <(echo "{\"requester\": {\"id\": \"$id\"}}"))
 
-    curl -X PUT "$url"                  \
-    -H 'Content-Type: application/json' \
-    -d "$json"                          \
-    2>/dev/null                         \
+    curl -X PUT "$url"                      \
+        -H 'Content-Type: application/json' \
+        -d "$json"                          \
+        2>/dev/null                         \
     | jq
 }
 
 function get_bad() {
     curl -X GET localhost:8080/users/65ad3d81421791df197f89eb \
     2>/dev/null                                               \
+    | jq
+}
+
+function create_delete_get() {
+    local id
+    id=$(                                \
+    new_user                             \
+    | jq '.id'                           \
+    | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+    
+    echo "created user of id: $id"
+
+    local url="localhost:8080/users/$id"
+
+    echo "deleted:"
+    curl -X DELETE "$url"                                   \
+        -H 'Content-Type: application/json'                 \
+        -d "{\"requester\": {\"id\": \"$id\"}}" 2>/dev/null \
+    | jq
+
+    echo "checking if deleted:"
+    curl -X GET "$url" 2>/dev/null | jq
+}
+
+function delete_bad() {
+    curl -X DELETE localhost:8080/users/65ad3d81421791df197f89eb    \
+        -H 'Content-Type: application/json'                         \
+        -d "{\"requester\": {\"id\": \"65ad3d81421791df197f89eb\"}}"\
+    2>/dev/null                                                     \
+    | jq
+}
+
+function delete_noauth() {
+    curl -X DELETE localhost:8080/users/65ad3d81421791df197f89eb    \
+        -H 'Content-Type: application/json'                         \
+        -d "{\"requester\": {\"id\": \"65ad7cfd7a8fbdc2f7829aa6\"}}"\
+    2>/dev/null                                                     \
     | jq
 }
 

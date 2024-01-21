@@ -22,20 +22,53 @@ type respError struct {
 	Content string `json:"reason"`
 }
 
+func decodeBody(c *gin.Context, bdy interface{}) error {
+	err := json.NewDecoder(c.Request.Body).Decode(bdy)
+	if err != nil {
+		log.Warn(msgs.ErrDecode, "body", "wrong format")
+		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
+			Error:   msgs.ErrInternal.Error(),
+			Content: "malformed data",
+		})
+		return err
+	}
+	return nil
+}
+
+func idFromParams(c *gin.Context) (primitive.ObjectID, error) {
+	id, ok := c.Params.Get("id")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
+			Code:    http.StatusInternalServerError,
+			Error:   msgs.ErrInternal.Error(),
+			Content: "Failed getting id parameter",
+		})
+		return primitive.NilObjectID, msgs.ErrFailedToGetParams
+	}
+
+	objid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		log.Error(msgs.ErrObjectIDConv, "message", err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
+			Code:    http.StatusBadRequest,
+			Error:   msgs.ErrDecode.Error(),
+			Content: "wrong id",
+		})
+		return primitive.NilObjectID, msgs.ErrObjectIDConv
+	}
+	return objid, nil
+}
+
 func NewUser(c *gin.Context, users *mongo.Collection) {
 	body := struct {
 		User types.User `json:"user"`
 	}{}
-	err := json.NewDecoder(c.Request.Body).Decode(&body)
+
+	err := decodeBody(c, &body)
 	if err != nil {
-		log.Warn(err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code:    http.StatusBadRequest,
-			Error:   msgs.ErrUserCreation.Error(),
-			Content: "malformed data",
-		})
 		return
 	}
+
 	usr := body.User
 	log.Debug("usr", "struct", fmt.Sprintf("%#v", usr))
 
@@ -97,26 +130,11 @@ func GetUsers(c *gin.Context, usersColl *mongo.Collection) {
 }
 
 func GetUser(c *gin.Context, users *mongo.Collection) {
-	id, ok := c.Params.Get("id")
-	if !ok {
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code:    http.StatusBadRequest,
-			Error:   msgs.ErrInternal.Error(),
-			Content: "Failed getting id parameter",
-		})
+	objid, err := idFromParams(c)
+	if err != nil{
 		return
 	}
 
-	objid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		log.Error(msgs.ErrObjectIDConv, "message", err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code:    http.StatusBadRequest,
-			Error:   msgs.ErrDecode.Error(),
-			Content: "wrong id",
-		})
-		return
-	}
 	filter := struct {
 		ID primitive.ObjectID `bson:"_id"`
 	}{
@@ -132,7 +150,7 @@ func GetUser(c *gin.Context, users *mongo.Collection) {
 	err = result.Decode(&user)
 	if err == mongo.ErrNoDocuments {
 		log.Warn(mongo.ErrNoDocuments, "getuser", err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
+		c.AbortWithStatusJSON(http.StatusNotFound, respError{
 			Code:    http.StatusBadRequest,
 			Error:   msgs.ErrNotFound.Error(),
 			Content: "user not found",
@@ -153,41 +171,17 @@ func GetUser(c *gin.Context, users *mongo.Collection) {
 }
 
 func UpdateUser(c *gin.Context, users *mongo.Collection) {
-	id, ok := c.Params.Get("id")
-	if !ok {
-		log.Error(msgs.ErrInternal, "UpdateUser", "failed to get params")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrInternal.Error(),
-			Content: "failed to get id",
-		})
-		return
-	}
-
-	objid, err := primitive.ObjectIDFromHex(id)
+	objid, err := idFromParams(c)
 	if err != nil {
-		log.Error(msgs.ErrDecode, "failed to decode objid", err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code:    http.StatusBadRequest,
-			Error:   msgs.ErrDecode.Error(),
-			Content: "internal error",
-		})
 		return
 	}
 
-	body := c.Request.Body
 	var bdy struct {
 		User      types.User `json:"user"`
 		Requester types.User `json:"requester"`
 	}
-
-	err = json.NewDecoder(body).Decode(&bdy)
+	err = decodeBody(c, &bdy)
 	if err != nil {
-		log.Warn(msgs.ErrDecode, "body", "wrong format")
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Error:   msgs.ErrInternal.Error(),
-			Content: "malformed data",
-		})
 		return
 	}
 
@@ -236,5 +230,68 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 		Code:   http.StatusCreated,
 		Status: "OK",
 		ID:     updateResult.ModifiedCount,
+	})
+}
+
+func DeleteUser(c *gin.Context, users *mongo.Collection) {
+	objid, err := idFromParams(c)
+	if err != nil {
+		return
+	}
+
+	body := struct{
+		Requester types.User `json:"requester"`
+	}{}
+
+	err = decodeBody(c, &body)
+	if err != nil {
+		return
+	}
+
+	if body.Requester.ID != objid {
+		log.Warn(msgs.ErrUpdateFailed, "UpdateUser", body.Requester.ID == objid)
+		c.AbortWithStatusJSON(http.StatusForbidden, respError{
+			Code: http.StatusForbidden,
+			Error: msgs.ErrForbidden.Error(),
+			Content: "action forbidden",
+		})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 200)
+	defer cancel()
+
+	filter := bson.M{
+		"_id": objid,
+	}
+
+	deleteResult, err := users.DeleteOne(ctx, filter)
+	if err != nil {
+		log.Warn(msgs.ErrInternal, "DeleteUser", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
+			Code: http.StatusInternalServerError,
+			Error: msgs.ErrBadOptions.Error(),
+			Content: "internal error",
+		})
+		return
+	}
+
+	if deleteResult.DeletedCount != 1 {
+		log.Warn(msgs.ErrNotFound, "DeleteUser", deleteResult.DeletedCount != 1)
+		c.AbortWithStatusJSON(http.StatusNotFound, respError{
+			Code: http.StatusNotFound,
+			Error: msgs.ErrNotFound.Error(),
+			Content: "user failed to delete",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, struct {
+		Code   int    `json:"code"`
+		Status string `json:"status"`
+		ID     int64  `json:"id"`
+	}{
+		Code:   http.StatusCreated,
+		Status: "OK",
+		ID:     deleteResult.DeletedCount,
 	})
 }
