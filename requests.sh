@@ -6,14 +6,18 @@ make server
 jobs
 kill $(jobs -P)
 docker compose down
+source requests.sh
 '
 
 : '
 # requests
-new_post
-get_users
-new_user
-add_then_get
+new_user               # create new user
+get_users              # get all users
+add_then_get           # find user of id
+get_bad                # get not existant user
+add_then_update        # update user
+add_then_update_bad    # update user
+add_then_update_noauth # try to update with wrong credentials
 '
 
 # Make a post
@@ -49,6 +53,66 @@ function add_then_get() {
 
     curl -X GET "$url" \
     2>/dev/null        \
+    | jq
+}
+
+function add_then_update() {
+    local id
+    id=$(                                \
+    new_user                             \
+    | jq '.id'                           \
+    | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+
+    echo "id created: $id"
+
+    local url="localhost:8080/users/$id"
+
+    echo "created:"
+    curl -X GET "$url" 2>/dev/null | jq
+
+    local json
+    json=$(jq -s '.[0] * .[1]' requests/update_user.json <(echo "{\"requester\": {\"id\": \"$id\"}}"))
+
+    echo "update response: "
+    curl -X PUT "$url"                  \
+    -H 'Content-Type: application/json' \
+    -d "$json"                          \
+    2>/dev/null                         \
+    | jq
+
+    echo "updated to:"
+    curl -X GET "$url" 2>/dev/null | jq
+}
+
+function add_then_update_bad() {
+    local id="65ad3d81421791df197f89eb"
+    local url="localhost:8080/users/$id"
+    local json
+    json=$(jq -s '.[0] * .[1]' requests/update_user.json <(echo "{\"requester\": {\"id\": \"$id\"}}"))
+
+    curl -X PUT "$url"                  \
+    -H 'Content-Type: application/json' \
+    -d "$json"                          \
+    2>/dev/null                         \
+    | jq
+}
+
+function add_then_update_noauth() {
+    local id="65ad3d81421791df197f89eb"
+    local url="localhost:8080/users/65ad7cfd7a8fbdc2f7829aa6"
+    local json
+    json=$(jq -s '.[0] * .[1]' requests/update_user.json <(echo "{\"requester\": {\"id\": \"$id\"}}"))
+
+    curl -X PUT "$url"                  \
+    -H 'Content-Type: application/json' \
+    -d "$json"                          \
+    2>/dev/null                         \
+    | jq
+}
+
+function get_bad() {
+    curl -X GET localhost:8080/users/65ad3d81421791df197f89eb \
+    2>/dev/null                                               \
     | jq
 }
 

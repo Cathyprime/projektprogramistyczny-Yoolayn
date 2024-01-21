@@ -88,7 +88,6 @@ func main() {
 	log.Info("starting")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
-	defer cancel()
 
 	ch := make(chan connection)
 	defer close(ch)
@@ -132,6 +131,7 @@ func main() {
 	r.GET("/users", func(c *gin.Context) { handlers.GetUsers(c, users) })
 	r.POST("/users", func(c *gin.Context) { handlers.NewUser(c, users) })
 	r.GET("/users/:id", func(c *gin.Context) { handlers.GetUser(c, users) })
+	r.PUT("/users/:id", func(c *gin.Context) { handlers.UpdateUser(c, users) })
 
 	srv := &http.Server{
 		Addr:    ":8080",
@@ -140,6 +140,7 @@ func main() {
 
 	go handlers.Interrupt(srv, users)
 
+	cancel()
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("listen: %s\n", err)
 	}

@@ -12,6 +12,9 @@ var (
 	ErrTypeConn     = errors.New("Connection error: ")
 	ErrUserCreation = errors.New("failed creating user")
 	ErrObjectIDConv = errors.New("failed creating objectid from string")
+	ErrNotFound     = errors.New("resource not found")
+	ErrForbidden    = errors.New("action is forbidden")
+	ErrUpdateFailed = errors.New("failed to update the user")
 )
 
 // debug
