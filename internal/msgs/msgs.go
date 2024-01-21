@@ -11,6 +11,7 @@ var (
 	ErrInternal     = errors.New("an internal error has occurred")
 	ErrTypeConn     = errors.New("Connection error: ")
 	ErrUserCreation = errors.New("failed creating user")
+	ErrObjectIDConv = errors.New("failed creating objectid from string")
 )
 
 // debug

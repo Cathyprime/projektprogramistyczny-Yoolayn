@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/handlers"
+	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
@@ -64,6 +64,7 @@ const (
 	LevelsError   = "error"
 	LevelsFatal   = "fatal"
 )
+
 func setLevel() {
 	switch level := os.Getenv("LOG"); level {
 	case LevelsDebug:
@@ -103,7 +104,7 @@ func main() {
 	defer func() {
 		err := client.Disconnect(ctx)
 		if err != nil {
-			log.Fatal(msgs.ErrTypeConn , "database disconnect", err)
+			log.Fatal(msgs.ErrTypeConn, "database disconnect", err)
 		}
 	}()
 
@@ -130,6 +131,7 @@ func main() {
 	r.POST("/posts", func(c *gin.Context) { handlers.NewPost(c, users) })
 	r.GET("/users", func(c *gin.Context) { handlers.GetUsers(c, users) })
 	r.POST("/users", func(c *gin.Context) { handlers.NewUser(c, users) })
+	r.GET("/users/:id", func(c *gin.Context) { handlers.GetUser(c, users) })
 
 	srv := &http.Server{
 		Addr:    ":8080",
