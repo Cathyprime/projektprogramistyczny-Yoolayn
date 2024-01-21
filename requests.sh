@@ -10,8 +10,8 @@ docker compose down
 : '
 # requests
 new_post
-get_users
-new_user
+get_users 2>/dev/null | jq
+new_user 2>/dev/null | jq
 '
 
 # Make a post
@@ -43,10 +43,10 @@ function jobs() {
 }
 
 function exit_req() {
-    kill $(jobs -P)
+    kill "$(jobs -P)"
     docker compose down
     exit 0
 }
 
 trap "kill \$(jobs -P)" INT
-trap exit_req EXIT
+# trap exit_req EXIT

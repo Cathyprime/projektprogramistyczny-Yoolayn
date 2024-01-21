@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
+	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/handlers"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -32,15 +32,60 @@ type connection struct {
 func setupMongo(ch chan<- connection) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
-
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUri).SetAuth(auth))
+	if err != nil {
+		log.Fatal("invalid options: ", err)
+	}
+
+	err = client.Ping(ctx, nil)
 	ch <- connection{
 		con: client,
 		err: err,
 	}
 }
 
+func newStyle() (style *log.Styles) {
+	style = log.DefaultStyles()
+	pinkText := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#ffc0cb"))
+
+	grayText := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#808080"))
+
+	style.Key = pinkText
+	style.Value = grayText
+	return
+}
+
+const (
+	LevelsDebug   = "debug"
+	LevelsInfo    = "info"
+	LevelsWarning = "warn"
+	LevelsError   = "error"
+	LevelsFatal   = "fatal"
+)
+func setLevel() {
+	switch level := os.Getenv("LOG"); level {
+	case LevelsDebug:
+		log.SetLevel(log.DebugLevel)
+	case LevelsInfo:
+		log.SetLevel(log.InfoLevel)
+	case LevelsWarning:
+		log.SetLevel(log.WarnLevel)
+	case LevelsError:
+		log.SetLevel(log.ErrorLevel)
+	case LevelsFatal:
+		log.SetLevel(log.FatalLevel)
+	default:
+		log.SetLevel(log.InfoLevel)
+	}
+}
+
 func main() {
+	log.SetStyles(newStyle())
+	setLevel()
+	log.Info("starting")
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
@@ -51,14 +96,14 @@ func main() {
 	var client *mongo.Client
 	connectionResult := <-ch
 	if connectionResult.err != nil {
-		log.Fatal(connectionResult.err)
+		log.Fatal(msgs.ErrTypeConn, "database connection", connectionResult.err)
 	}
 
 	client = connectionResult.con
 	defer func() {
 		err := client.Disconnect(ctx)
 		if err != nil {
-			panic(err)
+			log.Fatal(msgs.ErrTypeConn , "database disconnect", err)
 		}
 	}()
 
@@ -91,25 +136,9 @@ func main() {
 		Handler: r,
 	}
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
-		}
-	}()
+	go handlers.Interrupt(srv, users)
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutdown Server...")
-
-	quitCtx, quitCancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer quitCancel()
-	if err := srv.Shutdown(quitCtx); err != nil {
-		log.Fatal("Error Shutting down: ", err)
-	}
-
-	err := users.Drop(quitCtx)
-	if err != nil {
-		log.Fatal("Failed to drop users ", err)
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("listen: %s\n", err)
 	}
 }

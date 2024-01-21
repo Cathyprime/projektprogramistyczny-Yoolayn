@@ -1,7 +1,11 @@
 {
   "user": {
-    "name": "string",
-    "login": "login",
-    "password": "password"
+    "name": "name1",
+    "bio": "example bio",
+    "password": "password1",
+    "avatar": "avatar string",
+    "pronouns": "she/her",
+    "profilePrivacy": 2,
+    "postPrivacy": 2
   }
 }

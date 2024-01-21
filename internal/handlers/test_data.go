@@ -8,12 +8,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// type User struct {
-// 	Name     string `json:"name"`
-// 	Login    string `json:"login"`
-// 	Password string `json:"password"`
-// }
-
 func CreateHelloWorld(ctx context.Context, c *mongo.Collection) *mongo.InsertOneResult {
 	result, err := c.InsertOne(ctx, bson.M{
 		"message": "hello_world!",
@@ -24,7 +18,7 @@ func CreateHelloWorld(ctx context.Context, c *mongo.Collection) *mongo.InsertOne
 	return result
 }
 
-func createSampleUsers(ctx context.Context, c *mongo.Collection) {
+func CreateSampleUsers(ctx context.Context, c *mongo.Collection) {
 	_, err := c.InsertMany(ctx, []interface{}{
 		bson.M{
 			"name": "name1",

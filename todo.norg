@@ -2,12 +2,24 @@
   - ( ) create user
   - ( ) login
 
-  - ( ) customize profile
+  - ( ) user profile
+  -- ( ) name
   -- ( ) create bio
   -- ( ) custom avatar
   -- ( ) pronouns :3
   -- ( ) change password
   -- ( ) change privacy settings
+
+@code go
+  type User struct {
+      Name string
+      Bio string
+      Avatar string //base64 encoded image
+      Pronouns string
+      Password string // preferably encrypted
+      Privacy int // some enum with settings
+  }
+@end
 
  -- ( ) create new board
   -- ( ) edit board description
@@ -16,6 +28,39 @@
   - ( ) edit post
   - ( ) make comment
   - ( ) edit comment
+
+  @code go
+  type Board struct {
+      Name string
+      Bio string
+      Moderators []User
+      Owner User
+      Rules string
+  }
+
+  type Post struct {
+      Title string
+      BodyType string // enum with types: Text, Image (base64 encoded) or Link (would be nice if embed worked)
+      BodyContent string
+      Votes int
+  }
+
+  type Post interface {
+      EditPost(post Post) bool
+      Vote(upvote bool)
+  }
+
+  type Board interface {
+      UpdateRules(string) bool
+      UpdateBio(string) bool
+      NewPost(post Post) error
+      GetPosts(filter interface{}) ([]Post, error)
+      DeletePost(post ...Post) error
+      ChangeOwner(u User) bool
+      AddModerator(u ...User) bool
+      RemoveModerator(u ...User) bool
+  }
+  @end
 
   - ( ) moderation
   -- ( ) delete comments
@@ -30,6 +75,10 @@
   -- ( ) modify posts
   -- ( ) delete comments
   -- ( ) delete posts
+
+  @code go
+  var administrators []User = []User{}
+  @end
 
   - ( ) upvotes/downvotes
 
@@ -52,23 +101,25 @@
 
 ** Api
 *** Posts:
-    - Create a post:                POST       \/api/posts
-    - Read all posts:               GET        \/api/posts
-    - Read a specific post:         GET        \/api/posts/:postId
-    - Update a post:                PUT        \/api/posts/:postId
-    - Delete a post:                DELETE     \/api/posts/:postId
+    - ( ) Create a post:                POST           \/api/posts
+    - ( ) Read all posts:               GET            \/api/posts
+    - ( ) Read a specific post:         GET            \/api/posts/:postId
+    - ( ) Update a post:                PUT            \/api/posts/:postId
+    - ( ) Delete a post:                DELETE         \/api/posts/:postId
+    - ( ) Search for post:              GET            \/api/posts?
 
 *** Comments:
-    - Create a comment:             POST       \/api/posts/:postId/comments
-    - Read all comments on a post:  GET        \/api/posts/:postId/comments
-    - Read a specific comment:      GET        \/api/posts/:postId/comments/:commentId
-    - Update a comment:             PUT        \/api/posts/:postId/comments/:commentId
-    - Delete a comment:             DELETE     \/api/posts/:postId/comments/:commentId
+    - ( ) Create a comment:             POST           \/api/posts/:postId/comments
+    - ( ) Read all comments on a post:  GET            \/api/posts/:postId/comments
+    - ( ) Read a specific comment:      GET            \/api/posts/:postId/comments/:commentId
+    - ( ) Update a comment:             PUT            \/api/posts/:postId/comments/:commentId
+    - ( ) Delete a comment:             DELETE         \/api/posts/:postId/comments/:commentId
 
 *** Users:
-    - Create a user:                POST       \/api/users
-    - Read all users:               GET        \/api/users
-    - Read a specific user:         GET        \/api/users/:userId
-    - Update a user:                PUT        \/api/users/:userId
-    - Delete a user:                DELETE     \/api/users/:userId
-    - Login a user                  CONNECT    \/api/users/:userid
+    - (x) Create a user:                POST           \/api/users
+    - (x) Read all users:               GET            \/api/users
+    - ( ) Read a specific user:         GET            \/api/users/:userId
+    - ( ) Update a user:                PUT            \/api/users/:userId
+    - ( ) Delete a user:                DELETE         \/api/users/:userId
+    - ( ) Login a user                  CONNECT        \/api/users/:userid
+    - ( ) Search for user:              GET            \/api/users?
