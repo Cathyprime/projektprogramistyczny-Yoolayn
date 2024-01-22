@@ -1,0 +1,11 @@
+{
+  "user": {
+    "name": "user2",
+    "bio": "bio2",
+    "password": "password2",
+    "avatar": "avatar string",
+    "pronouns": "she/her",
+    "profilePrivacy": 2,
+    "postPrivacy": 2
+  }
+}

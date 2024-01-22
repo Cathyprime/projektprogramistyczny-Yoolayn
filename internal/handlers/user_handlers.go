@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
@@ -15,49 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-type respError struct {
-	Code    int    `json:"code"`
-	Error   string `json:"error"`
-	Content string `json:"reason"`
-}
-
-func decodeBody(c *gin.Context, bdy interface{}) error {
-	err := json.NewDecoder(c.Request.Body).Decode(bdy)
-	if err != nil {
-		log.Warn(msgs.ErrDecode, "body", "wrong format")
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Error:   msgs.ErrInternal.Error(),
-			Content: "malformed data",
-		})
-		return err
-	}
-	return nil
-}
-
-func idFromParams(c *gin.Context) (primitive.ObjectID, error) {
-	id, ok := c.Params.Get("id")
-	if !ok {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrInternal.Error(),
-			Content: "Failed getting id parameter",
-		})
-		return primitive.NilObjectID, msgs.ErrFailedToGetParams
-	}
-
-	objid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		log.Error(msgs.ErrObjectIDConv, "message", err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code:    http.StatusBadRequest,
-			Error:   msgs.ErrDecode.Error(),
-			Content: "wrong id",
-		})
-		return primitive.NilObjectID, msgs.ErrObjectIDConv
-	}
-	return objid, nil
-}
 
 func NewUser(c *gin.Context, users *mongo.Collection) {
 	body := struct {
@@ -294,4 +252,50 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 		Status: "OK",
 		ID:     deleteResult.DeletedCount,
 	})
+}
+
+func SearchUser(c *gin.Context, users *mongo.Collection) {
+	var length int
+	for _, v := range c.Request.URL.Query() {
+		length += len(v)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 200)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	ch := make(chan findResult, length)
+
+	for k, s := range c.Request.URL.Query() {
+		for _, v := range s {
+			wg.Add(1)
+			go findByFieldUsers(ctx, users, k, v, ch, &wg)
+		}
+	}
+
+	wg.Wait()
+	close(ch)
+
+	var values []types.User
+	for v := range ch {
+		if err := v.err; err != nil {
+			log.Debug(msgs.DebugSkippedLoop, "struct", v)
+			continue
+		}
+		log.Debug("appending", "values +", v)
+		values = append(values, v.users...)
+	}
+
+	if len(values) == 0 {
+		log.Error(msgs.ErrNotFound, "SearchUser", len(values) == 0)
+		log.Debug(msgs.DebugStruct, "values", values)
+		c.AbortWithStatusJSON(http.StatusNotFound, respError{
+			Code: http.StatusNotFound,
+			Error: msgs.ErrNotFound.Error(),
+			Content: "no users found with provided parameters",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, values)
 }

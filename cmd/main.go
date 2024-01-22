@@ -133,6 +133,7 @@ func main() {
 	r.GET("/users/:id", func(c *gin.Context) { handlers.GetUser(c, users) })
 	r.PUT("/users/:id", func(c *gin.Context) { handlers.UpdateUser(c, users) })
 	r.DELETE("/users/:id", func(c *gin.Context) { handlers.DeleteUser(c, users) })
+	r.GET("/users/search", func(c *gin.Context) { handlers.SearchUser(c, users) })
 
 	srv := &http.Server{
 		Addr:    ":8080",

@@ -16,9 +16,11 @@ var (
 	ErrTypeConn          = errors.New("Connection error: ")
 	ErrUpdateFailed      = errors.New("failed to update the user")
 	ErrUserCreation      = errors.New("failed creating user")
+	ErrWrongFormat       = errors.New("wrong body format")
 )
 
 // debug
-const (
-	DebugStruct = "the value of struct: "
+var (
+	DebugStruct      = errors.New("the value of struct: ")
+	DebugSkippedLoop = errors.New("Loop skipped")
 )
