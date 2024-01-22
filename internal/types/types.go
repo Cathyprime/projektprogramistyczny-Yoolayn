@@ -14,7 +14,7 @@ import (
 
 var (
 	Administrators []User
-	Collections = struct {
+	Collections    = struct {
 		Admins *mongo.Collection
 		Client *mongo.Client
 	}{}
@@ -127,6 +127,7 @@ func (p Post) CanEditPost(b Board, u User) bool {
 type update interface {
 	UpdateOne(ctx context.Context, filter interface{}, update interface{}) (*mongo.InsertOneResult, error)
 }
+
 func (p *Post) EditPost(currUser User, content string, collection update) error {
 	if !p.CanEditPost(p.Board, currUser) {
 		return ErrPostEditPermissions

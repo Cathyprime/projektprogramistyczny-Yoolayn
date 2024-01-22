@@ -131,7 +131,7 @@ func GetUsers(c *gin.Context, usersColl *mongo.Collection) {
 
 func GetUser(c *gin.Context, users *mongo.Collection) {
 	objid, err := idFromParams(c)
-	if err != nil{
+	if err != nil {
 		return
 	}
 
@@ -215,8 +215,8 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 	if updateResult.ModifiedCount == 0 {
 		log.Warn(msgs.ErrUpdateFailed, "UpdateUser", updateResult)
 		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code: http.StatusBadRequest,
-			Error: msgs.ErrUpdateFailed.Error(),
+			Code:    http.StatusBadRequest,
+			Error:   msgs.ErrUpdateFailed.Error(),
 			Content: "failed to find the user",
 		})
 		return
@@ -239,7 +239,7 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 		return
 	}
 
-	body := struct{
+	body := struct {
 		Requester types.User `json:"requester"`
 	}{}
 
@@ -251,14 +251,14 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	if body.Requester.ID != objid {
 		log.Warn(msgs.ErrUpdateFailed, "UpdateUser", body.Requester.ID == objid)
 		c.AbortWithStatusJSON(http.StatusForbidden, respError{
-			Code: http.StatusForbidden,
-			Error: msgs.ErrForbidden.Error(),
+			Code:    http.StatusForbidden,
+			Error:   msgs.ErrForbidden.Error(),
 			Content: "action forbidden",
 		})
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 200)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
 	filter := bson.M{
@@ -269,8 +269,8 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	if err != nil {
 		log.Warn(msgs.ErrInternal, "DeleteUser", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code: http.StatusInternalServerError,
-			Error: msgs.ErrBadOptions.Error(),
+			Code:    http.StatusInternalServerError,
+			Error:   msgs.ErrBadOptions.Error(),
 			Content: "internal error",
 		})
 		return
@@ -279,8 +279,8 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	if deleteResult.DeletedCount != 1 {
 		log.Warn(msgs.ErrNotFound, "DeleteUser", deleteResult.DeletedCount != 1)
 		c.AbortWithStatusJSON(http.StatusNotFound, respError{
-			Code: http.StatusNotFound,
-			Error: msgs.ErrNotFound.Error(),
+			Code:    http.StatusNotFound,
+			Error:   msgs.ErrNotFound.Error(),
 			Content: "user failed to delete",
 		})
 		return
