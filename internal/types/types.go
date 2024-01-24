@@ -6,7 +6,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -85,13 +84,13 @@ type Board struct {
 }
 
 type Post struct {
-	ID          primitive.ObjectID `json:"id" bson:"_id"`
+	ID          primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	Title       string             `json:"title" bson:"title"`
 	BodyType    ContentType        `json:"bodyType" bson:"bodyType"`
 	BodyContent string             `json:"bodyContent" bson:"bodyContent"`
 	Votes       int                `json:"votes" bson:"votes"`
-	Author      User               `json:"author" bson:"author"`
-	Board       Board              `json:"board" bson:"board"`
+	Author      primitive.ObjectID `json:"author" bson:"author"`
+	Board       primitive.ObjectID `json:"board" bson:"board"`
 }
 
 func AddAdministrators(newAdmins ...User) {
@@ -129,27 +128,5 @@ func IsModerator(b Board, u User) bool {
 }
 
 func (p Post) CanEditPost(b Board, u User) bool {
-	return IsAdmin(u) && IsModerator(b, u) && p.Author.Equal(u)
-}
-
-type update interface {
-	UpdateOne(ctx context.Context, filter interface{}, update interface{}) (*mongo.InsertOneResult, error)
-}
-
-func (p *Post) EditPost(currUser User, content string, collection update) error {
-	if !p.CanEditPost(p.Board, currUser) {
-		return ErrPostEditPermissions
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
-	defer cancel()
-
-	result, err := collection.UpdateOne(ctx, *p, bson.M{"BodyContent": content})
-	if err != nil {
-		log.Debug("error path triggered in UpdateOne", "function", "EditPost")
-		return err
-	}
-
-	log.Debug("result: ", content, result)
-	return nil
+	return IsAdmin(u) && IsModerator(b, u) && p.Author == u.ID
 }

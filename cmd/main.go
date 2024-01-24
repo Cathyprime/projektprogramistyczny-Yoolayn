@@ -109,6 +109,7 @@ func main() {
 	db := client.Database("redoot")
 	users := db.Collection("users")
 	boards := db.Collection("boards")
+	posts := db.Collection("posts")
 
 	r := gin.Default()
 
@@ -125,6 +126,8 @@ func main() {
 	r.PUT("/boards/:id", func(c *gin.Context) { handlers.UpdateBoard(c, boards, users) })
 	r.DELETE("/boards/:id", func(c *gin.Context) { handlers.DeleteBoard(c, boards, users) })
 	r.GET("/boards/search", func(c *gin.Context) { handlers.SearchBoard(c, boards) })
+
+	r.POST("/boards/:id/posts", func(c *gin.Context) { handlers.NewPost(c, posts) })
 
 	srv := &http.Server{
 		Addr:    ":8080",

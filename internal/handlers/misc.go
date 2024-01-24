@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,19 +28,17 @@ type findResultUsers struct {
 
 type findResultBoards struct {
 	boards []types.Board
-	err   error
+	err    error
 }
 
 func decodeBody(c *gin.Context, bdy interface{}) error {
 	log.Debug(msgs.DebugStruct, "bdy", bdy)
-	log.Debug(msgs.DebugStruct, "request body", c.Request.Body)
 	err := json.NewDecoder(c.Request.Body).Decode(bdy)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrWrongFormat,
 			"malformed data",
-			"body",
-			"wrong format",
+			"body", fmt.Sprintf("%#v", bdy),
 		))
 		return err
 	}
@@ -67,6 +66,48 @@ func Interrupt(s *http.Server, collections ...*mongo.Collection) {
 	}
 }
 
+func postId(c *gin.Context) (primitive.ObjectID, primitive.ObjectID, error) {
+	boardId, ok := c.Params.Get("boardId")
+	if !ok {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting board ID",
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, msgs.ErrFailedToGetParams
+	}
+
+	boardObjId, err := primitive.ObjectIDFromHex(boardId)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrObjectIDConv,
+			"wrong id",
+			"message", err,
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, msgs.ErrObjectIDConv
+	}
+
+	postId, ok := c.Params.Get("postId")
+	if !ok {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting post id",
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, msgs.ErrFailedToGetParams
+	}
+
+	postObjId, err := primitive.ObjectIDFromHex(postId)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrObjectIDConv,
+			"wrong id",
+			"message", err,
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, msgs.ErrObjectIDConv
+	}
+
+	return boardObjId, postObjId, nil
+}
+
 func idFromParams(c *gin.Context) (primitive.ObjectID, error) {
 	id, ok := c.Params.Get("id")
 	if !ok {
@@ -79,12 +120,10 @@ func idFromParams(c *gin.Context) (primitive.ObjectID, error) {
 
 	objid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		log.Error(msgs.ErrObjectIDConv)
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrDecode,
+			msgs.ErrObjectIDConv,
 			"wrong id",
-			"message",
-			err,
+			"message", err,
 		))
 		return primitive.NilObjectID, msgs.ErrObjectIDConv
 	}

@@ -1,11 +1,10 @@
 {
   "post": {
-    "user": {
-      "name": "name",
-      "login": "login",
-      "password": "password"
-    },
-    "title": "title",
-    "body": "post body"
+    "title": "outragous title",
+    "bodyType": 0,
+    "bodyContent": "clickbait",
+    "votes": -10,
+    "author": "",
+    "board": ""
   }
 }

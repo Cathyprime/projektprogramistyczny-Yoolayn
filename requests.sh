@@ -283,6 +283,20 @@ function add_then_delete() {
     curl -X GET "$url" 2>/dev/null | jq
 }
 
+function new_post() {
+    id=$(add_then_get_board | jq '.id')
+    author=$(add_then_get | jq '.id')
+    filler="{ \"author\": $author, \"board\": $id }"
+    url="$baseurl/boards/${id//\"/}/posts"
+    body=$(jq --argjson filler "$filler" '.post |= ( .author = $filler.author | .board = $filler.board )' < ./requests/post_test.json)
+
+    curl -X POST "$url"                     \
+        -H 'Content-Type: application/json' \
+        --data-binary @- <<< "$body"        \
+        2>/dev/null                         \
+        | jq
+}
+
 function search_board_by_name() {
     curl -X GET $baseurl/boards/search\?name="$1" \
         2>/dev/null                              \

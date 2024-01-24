@@ -31,7 +31,7 @@ func NewBoard(c *gin.Context, boards *mongo.Collection) {
 	log.Debug(msgs.DebugStruct, "board", fmt.Sprintf("%#v", board))
 
 	if log.GetLevel() == log.DebugLevel {
-		debugJSON, _ := json.MarshalIndent(board, "", "\t")
+		debugJSON, _ := json.MarshalIndent(board, "", "  ")
 		log.Debug(msgs.DebugJSON, "board", string(debugJSON))
 	}
 
