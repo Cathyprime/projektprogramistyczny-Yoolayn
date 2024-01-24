@@ -128,13 +128,14 @@ func main() {
 	r.GET("/boards/search", func(c *gin.Context) { handlers.SearchBoard(c, boards) })
 
 	r.POST("/boards/:id/posts", func(c *gin.Context) { handlers.NewPost(c, posts) })
+	r.GET("/boards/:id/posts/:postId", func(c *gin.Context) { handlers.GetPost(c, posts) })
 
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: r,
 	}
 
-	go handlers.Interrupt(srv, users, boards)
+	go handlers.Interrupt(srv, users, boards, posts)
 
 	cancel()
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

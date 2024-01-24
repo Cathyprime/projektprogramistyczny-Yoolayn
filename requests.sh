@@ -31,13 +31,15 @@ add_then_get_board                    # get board by id
 add_then_update_board                 # update a board
 add_then_delete                       # delete a board
 search_board_by_name "board_example1" # search the board by name
+new_post                              # create new post
+get_post
 '
 
 baseurl="localhost:8080"
 
 # Make a post
 function new_post() {
-    curl -X POST $baseurl/posts              \
+    curl -X POST "$baseurl/posts"            \
          -H 'Content-Type: application/json' \
          -d '@./requests/post_test.json'     \
          2>/dev/null                         \
@@ -294,7 +296,13 @@ function new_post() {
         -H 'Content-Type: application/json' \
         --data-binary @- <<< "$body"        \
         2>/dev/null                         \
-        | jq
+        | jq --argjson id "$id" '.board = $id'
+}
+
+function get_post() {
+    post=$(new_post)
+    url="$baseurl/boards/$(jq '.board' <<< "$post" | sed 's#\("\|\\\)##g')/posts/$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')"
+    curl -X GET "$url" 2>/dev/null | jq
 }
 
 function search_board_by_name() {

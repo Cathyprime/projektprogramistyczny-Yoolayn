@@ -8,6 +8,7 @@ import (
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/types"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -38,10 +39,48 @@ func NewPost(c *gin.Context, posts *mongo.Collection) {
 	c.JSON(http.StatusCreated, struct {
 		Code   int    `json:"code"`
 		Status string `json:"status"`
-		ID     string `json:"iD"`
+		ID     string `json:"id"`
 	}{
 		Code:   http.StatusCreated,
 		Status: "OK",
 		ID:     result.InsertedID.(primitive.ObjectID).String(),
 	})
+}
+
+func GetPost(c *gin.Context, posts *mongo.Collection) {
+	boardId, postId, err := postId(c)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			err,
+			"an error has occured",
+		))
+		return
+	}
+
+	filter := bson.M{
+		"_id":   postId,
+		"board": boardId,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	var post types.Post
+	err = posts.FindOne(ctx, filter).Decode(&post)
+	if err == mongo.ErrNoDocuments {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"post not found!",
+		))
+		return
+	} else if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"an internal error has accured",
+			"decode error", err,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, post)
 }

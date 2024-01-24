@@ -67,7 +67,7 @@ func Interrupt(s *http.Server, collections ...*mongo.Collection) {
 }
 
 func postId(c *gin.Context) (primitive.ObjectID, primitive.ObjectID, error) {
-	boardId, ok := c.Params.Get("boardId")
+	boardId, ok := c.Params.Get("id")
 	if !ok {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,

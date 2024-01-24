@@ -121,7 +121,7 @@
 *** Posts:
     - (x) Create a post:                POST        \/api/:boardName/posts
     - ( ) Read all posts:               GET         \/api/:boardName/posts
-    - ( ) Read a specific post:         GET         \/api/:boardName/:postId
+    - (x) Read a specific post:         GET         \/api/:boardName/:postId
     - ( ) Update a post:                PUT         \/api/:boardName/:postId
     - ( ) Delete a post:                DELETE      \/api/:boardName/:postId
     - ( ) Search for post:              GET         \/api/:boardName/posts?
