@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -117,4 +118,18 @@ func findByFieldUsers(ctx context.Context, coll *mongo.Collection, key, value st
 	ch <- resp
 	wg.Done()
 	log.Debug("No errors for", key, value)
+}
+
+func getAndConvert(c *mongo.Collection, id primitive.ObjectID, result any) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	err := c.FindOne(ctx, bson.M{"_id": id}).Decode(result)
+	if err == mongo.ErrNoDocuments {
+		return err
+	} else if err != nil {
+		return errors.New("sister, that's skill issue right there")
+	}
+
+	return nil
 }

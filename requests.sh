@@ -238,12 +238,25 @@ function add_then_get_board() {
         | jq '.id'                           \
         | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
 
-    echo $id
     url="$baseurl/boards/$id"
 
     curl -X GET "$url" \
         2>/dev/null    \
         | jq
+}
+
+function add_then_update_board() {
+    board=$(add_then_get_board)
+    echo "original board:"
+    echo "$board" | jq
+    echo "updated:"
+    owner=$(echo "$board" | jq '.owner')
+    update=$(jq                                                                           \
+        --argjson board "$board"                                                          \
+        '. |= (.id = $board.id | .moderators = $board.moderators | .owner = $board.owner)'\
+        < ./requests/update_board.json | tr '\n' ' ')
+    full="{\"board\": $update, \"requester\": $owner }"
+    echo "$full" | jq
 }
 
 function jobs() {

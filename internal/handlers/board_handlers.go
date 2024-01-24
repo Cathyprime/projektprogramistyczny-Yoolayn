@@ -126,3 +126,83 @@ func GetBoard(c *gin.Context, boards *mongo.Collection) {
 	log.Debug(msgs.DebugStruct, "board", fmt.Sprintf("%#v\n", board))
 	c.JSON(http.StatusOK, board)
 }
+
+func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collection) {
+	objid, err := idFromParams(c)
+	if err != nil {
+		return
+	}
+
+	var bdy struct {
+		Board     types.Board        `json:"board"`
+		Requester primitive.ObjectID `json:"requester"`
+	}
+	err = decodeBody(c, &bdy)
+	if err != nil {
+		return
+	}
+
+	log.Debug("ids", objid.String(), bdy.Requester.String())
+
+	var board types.Board
+	err = getAndConvert(boards, objid, &board)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"A skill issue has occured",
+		))
+		return
+	}
+
+	var user types.User
+	err = getAndConvert(users, objid, &user)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"A skill issue has occured",
+		))
+		return
+	}
+
+	if !(types.IsAdmin(user) || types.IsModerator(board, user) || board.Owner == user.ID) {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"action is forbidden!",
+			"UpdateBoard", "is neither an admin, moderator nor owner",
+		))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	update := bson.M{"set": bdy.Board}
+
+	updateResult, err := boards.UpdateByID(ctx, objid, update)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"options failure",
+			"UpdateUser", err,
+		))
+		return
+	}
+
+	if updateResult.ModifiedCount == 0 {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrUpdateFailed,
+			"failed to update the board",
+			"UpdateBoard", updateResult,
+		))
+		return
+	}
+	c.JSON(http.StatusAccepted, struct {
+		Code   int    `json:"code"`
+		Status string `json:"status"`
+		ID     int64  `json:"id"`
+	}{
+		Code:   http.StatusCreated,
+		Status: "OK",
+		ID:     updateResult.ModifiedCount,
+	})
+}
