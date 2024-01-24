@@ -11,24 +11,26 @@ source requests.sh
 
 : '
 # requests
-new_user                       # create new user
-get_users                      # get all users
-add_then_get                   # find user of id
-get_bad                        # get not existant user
-add_then_update                # update user
-add_then_update_bad            # update user non existant
-add_then_update_noauth         # try to update with wrong credentials
-create_delete_get              # delete user
-delete_bad                     # delete non existant
-delete_noauth                  # delete without authorization
-fill_dummy_users               # fill db with 5 users
-search_user_by_name user1      # find user by the name of name1
-search_user_by_bio bio1        # find the user by the bio of bio1
-search_user_by_both user1 bio2 # find the users that have either name=name1 or bio=bio2
-new_board                      # create a new board
-add_then_get_board             # get board by id
-add_then_update_board          # update a board
-add_then_delete                # delete a board
+new_user                              # create new user
+get_users                             # get all users
+add_then_get                          # find user of id
+get_bad                               # get not existant user
+add_then_update                       # update user
+add_then_update_bad                   # update user non existant
+add_then_update_noauth                # try to update with wrong credentials
+create_delete_get                     # delete user
+delete_bad                            # delete non existant
+delete_noauth                         # delete without authorization
+fill_dummy_users                      # fill db with 5 users
+search_user_by_name user1             # find user by the name of name1
+search_user_by_bio bio1               # find the user by the bio of bio1
+search_user_by_both user1 bio2        # find the users that have either name=name1 or bio=bio2
+new_board                             # create a new board
+get_boards                            # get all boards
+add_then_get_board                    # get board by id
+add_then_update_board                 # update a board
+add_then_delete                       # delete a board
+search_board_by_name "board_example1" # search the board by name
 '
 
 baseurl="localhost:8080"
@@ -279,6 +281,12 @@ function add_then_delete() {
 
     echo "check"
     curl -X GET "$url" 2>/dev/null | jq
+}
+
+function search_board_by_name() {
+    curl -X GET $baseurl/boards/search\?name="$1" \
+        2>/dev/null                              \
+        | jq
 }
 
 function jobs() {

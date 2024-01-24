@@ -100,6 +100,7 @@
    - ( ) search boards/posts/users
 
 ** Api
+   - ( ) Make all searches work on just words, not whole names
 *** Users:
     - (x) Create a user:                POST         \/api/users
     - (x) Read all users:               GET          \/api/users
@@ -112,10 +113,10 @@
 *** Boards:
     - (x) Create a board:                POST        \/api/boards
     - (x) Read all boards:               GET         \/api/boards
-    - (x) Read a specific board:         GET         \/api/:boardName
-    - (x) Update a board:                PUT         \/api/:boardName
-    - (x) Delete a board:                DELETE      \/api/:boardName
-    - ( ) Search for board:              GET         \/api/boards?
+    - (x) Read a specific board:         GET         \/api/:boardId
+    - (x) Update a board:                PUT         \/api/:boardId
+    - (x) Delete a board:                DELETE      \/api/:boardId
+    - (x) Search for board:              GET         \/api/boards?
 
 *** Posts:
     - ( ) Create a post:                POST        \/api/:boardName/posts

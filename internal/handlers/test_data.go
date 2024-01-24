@@ -17,36 +17,3 @@ func CreateHelloWorld(ctx context.Context, c *mongo.Collection) *mongo.InsertOne
 	}
 	return result
 }
-
-func CreateSampleUsers(ctx context.Context, c *mongo.Collection) {
-	_, err := c.InsertMany(ctx, []interface{}{
-		bson.M{
-			"name":     "name1",
-			"login":    "login1",
-			"password": "password1",
-		},
-		bson.M{
-			"name":     "name2",
-			"login":    "login2",
-			"password": "password2",
-		},
-		bson.M{
-			"name":     "name3",
-			"login":    "login3",
-			"password": "password3",
-		},
-		bson.M{
-			"name":     "name4",
-			"login":    "login4",
-			"password": "password4",
-		},
-		bson.M{
-			"name":     "name5",
-			"login":    "login5",
-			"password": "password5",
-		},
-	})
-	if err != nil {
-		log.Fatal("Failed to add to collection", err)
-	}
-}

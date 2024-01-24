@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
@@ -15,15 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-// type Board struct {
-// 	ID         primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
-// 	Name       string             `json:"name" bson:"name"`
-// 	Bio        string             `json:"bio" bson:"bio"`
-// 	Moderators []User             `json:"moderators" bson:"moderators"`
-// 	Owner      User               `json:"owner" bson:"owner"`
-// 	Rules      string             `json:"rules" bson:"rules"`
-// }
 
 func NewBoard(c *gin.Context, boards *mongo.Collection) {
 	body := struct {
@@ -284,4 +276,48 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 		Status: "OK",
 		ID:     deleteResult.DeletedCount,
 	})
+}
+
+func SearchBoard(c *gin.Context, boards *mongo.Collection) {
+	var length int
+	for _, v := range c.Request.URL.Query() {
+		length += len(v)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	ch := make(chan findResultBoards, length)
+
+	for k, s := range c.Request.URL.Query() {
+		for _, v := range s {
+			wg.Add(1)
+			go findByFieldBoards(ctx, boards, k, v, ch, &wg)
+		}
+	}
+
+	wg.Wait()
+	close(ch)
+
+	var values []types.Board
+	for v := range ch {
+		if err := v.err; err != nil {
+			log.Debug(msgs.DebugSkippedLoop, "struct", v)
+			continue
+		}
+		log.Debug("appending", "values +", v)
+		values = append(values, v.boards...)
+	}
+
+	if len(values) == 0 {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"no boards found with provided parameters",
+			"values", values,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, values)
 }

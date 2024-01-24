@@ -263,7 +263,7 @@ func SearchUser(c *gin.Context, users *mongo.Collection) {
 	defer cancel()
 
 	var wg sync.WaitGroup
-	ch := make(chan findResult, length)
+	ch := make(chan findResultUsers, length)
 
 	for k, s := range c.Request.URL.Query() {
 		for _, v := range s {
@@ -286,7 +286,6 @@ func SearchUser(c *gin.Context, users *mongo.Collection) {
 	}
 
 	if len(values) == 0 {
-		log.Error(msgs.ErrNotFound, "SearchUser", len(values) == 0)
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrNotFound,
 			"no users found with provided parameters",

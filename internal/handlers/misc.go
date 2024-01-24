@@ -20,9 +20,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type findResult struct {
+type findResultUsers struct {
 	users []types.User
-	err error
+	err   error
+}
+
+type findResultBoards struct {
+	boards []types.Board
+	err   error
 }
 
 func decodeBody(c *gin.Context, bdy interface{}) error {
@@ -86,9 +91,9 @@ func idFromParams(c *gin.Context) (primitive.ObjectID, error) {
 	return objid, nil
 }
 
-func findByFieldUsers(ctx context.Context, coll *mongo.Collection, key, value string, ch chan<-findResult, wg *sync.WaitGroup) {
+func findByFieldUsers(ctx context.Context, coll *mongo.Collection, key, value string, ch chan<- findResultUsers, wg *sync.WaitGroup) {
 	log.Debug("Search started for", key, value)
-	resp := findResult{}
+	resp := findResultUsers{}
 	filter := bson.D{
 		{Key: key, Value: value},
 	}
@@ -114,6 +119,40 @@ func findByFieldUsers(ctx context.Context, coll *mongo.Collection, key, value st
 		return
 	}
 	resp.users = users
+	resp.err = err
+	ch <- resp
+	wg.Done()
+	log.Debug("No errors for", key, value)
+}
+
+func findByFieldBoards(ctx context.Context, coll *mongo.Collection, key, value string, ch chan<- findResultBoards, wg *sync.WaitGroup) {
+	log.Debug("Search started for", key, value)
+	resp := findResultBoards{}
+	filter := bson.D{
+		{Key: key, Value: value},
+	}
+
+	cursor, err := coll.Find(ctx, filter)
+	if err != nil {
+		log.Debug("Error occured in Find", key, value)
+		resp.boards = nil
+		resp.err = err
+		ch <- resp
+		wg.Done()
+		return
+	}
+
+	var users []types.Board
+	err = cursor.All(ctx, &users)
+	if err != nil {
+		log.Debug("Error occured in cursor.All", key, value)
+		resp.boards = nil
+		resp.err = err
+		ch <- resp
+		wg.Done()
+		return
+	}
+	resp.boards = users
 	resp.err = err
 	ch <- resp
 	wg.Done()
