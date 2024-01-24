@@ -129,6 +129,7 @@ func main() {
 
 	r.POST("/boards/:id/posts", func(c *gin.Context) { handlers.NewPost(c, posts) })
 	r.GET("/boards/:id/posts/:postId", func(c *gin.Context) { handlers.GetPost(c, posts) })
+	r.GET("/boards/:id/posts", func(c *gin.Context) { handlers.GetPosts(c, posts) })
 
 	srv := &http.Server{
 		Addr:    ":8080",

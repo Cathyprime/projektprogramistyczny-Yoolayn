@@ -50,10 +50,6 @@ func NewPost(c *gin.Context, posts *mongo.Collection) {
 func GetPost(c *gin.Context, posts *mongo.Collection) {
 	boardId, postId, err := postId(c)
 	if err != nil {
-		c.AbortWithStatusJSON(msgs.ReportError(
-			err,
-			"an error has occured",
-		))
 		return
 	}
 
@@ -83,4 +79,40 @@ func GetPost(c *gin.Context, posts *mongo.Collection) {
 	}
 
 	c.JSON(http.StatusOK, post)
+}
+
+func GetPosts(c *gin.Context, posts *mongo.Collection) {
+	boardId, err := idFromParams(c)
+	if err != nil {
+		return
+	}
+
+	filter := bson.M{
+		"board": boardId,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	cursor, err := posts.Find(ctx, filter)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"skill issue",
+		))
+		return
+	}
+
+	var results []types.Post
+	err = cursor.All(ctx, &results)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"Failed decoding cursor",
+			"GetPosts cursor", err,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
 }

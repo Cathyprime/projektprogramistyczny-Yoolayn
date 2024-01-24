@@ -33,6 +33,7 @@ add_then_delete                       # delete a board
 search_board_by_name "board_example1" # search the board by name
 new_post                              # create new post
 get_post
+get_posts
 '
 
 baseurl="localhost:8080"
@@ -299,9 +300,36 @@ function new_post() {
         | jq --argjson id "$id" '.board = $id'
 }
 
+function n_new_posts() {
+    id=$1
+    author=$(add_then_get | jq '.id')
+    filler="{\"author\": $author, \"board\": \"$id\"}"
+    url="$baseurl/boards/$id/posts"
+
+    body=$(jq --argjson filler "$filler" '.post |= ( .author = $filler.author | .board = $filler.board )' < ./requests/post_test.json)
+
+    for _ in $(seq 1 "$2"); do
+        curl -X POST "$url" \
+            -H 'Content-Type: application/json' \
+            --data-binary @- <<< "$body"        \
+            2>/dev/null
+    done
+}
+
 function get_post() {
     post=$(new_post)
     url="$baseurl/boards/$(jq '.board' <<< "$post" | sed 's#\("\|\\\)##g')/posts/$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')"
+
+    curl -X GET "$url" 2>/dev/null | jq
+}
+
+function get_posts() {
+    post=$(new_post)
+    id=$(jq '.board' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g' )
+    url="$baseurl/boards/$id"
+
+    n_new_posts "$id" 5
+
     curl -X GET "$url" 2>/dev/null | jq
 }
 
