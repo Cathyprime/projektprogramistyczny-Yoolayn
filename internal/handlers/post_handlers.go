@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
@@ -289,4 +290,48 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 		Status: "OK",
 		ID:     deleteResult.DeletedCount,
 	})
+}
+
+func SearchPost(c *gin.Context, posts *mongo.Collection) {
+	var length int
+	for _, v := range c.Request.URL.Query() {
+		length += len(v)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	ch := make(chan findResultPosts, length)
+
+	for k, s := range c.Request.URL.Query() {
+		for _, v := range s {
+			wg.Add(1)
+			go findByFieldPosts(ctx, posts, k, v, ch, &wg)
+		}
+	}
+
+	wg.Wait()
+	close(ch)
+
+	var values []types.Post
+	for v := range ch {
+		if err := v.err; err != nil {
+			log.Debug(msgs.DebugSkippedLoop, "struct", v)
+			continue
+		}
+		log.Debug("appending", "values +", v)
+		values = append(values, v.posts...)
+	}
+
+	if len(values) == 0 {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"no posts found with provided parameters",
+			"values", values,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, values)
 }

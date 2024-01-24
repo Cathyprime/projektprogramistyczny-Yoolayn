@@ -31,6 +31,11 @@ type findResultBoards struct {
 	err    error
 }
 
+type findResultPosts struct {
+	posts []types.Post
+	err    error
+}
+
 func decodeBody(c *gin.Context, bdy interface{}) error {
 	log.Debug(msgs.DebugStruct, "bdy", bdy)
 	err := json.NewDecoder(c.Request.Body).Decode(bdy)
@@ -181,8 +186,8 @@ func findByFieldBoards(ctx context.Context, coll *mongo.Collection, key, value s
 		return
 	}
 
-	var users []types.Board
-	err = cursor.All(ctx, &users)
+	var boards []types.Board
+	err = cursor.All(ctx, &boards)
 	if err != nil {
 		log.Debug("Error occured in cursor.All", key, value)
 		resp.boards = nil
@@ -191,7 +196,7 @@ func findByFieldBoards(ctx context.Context, coll *mongo.Collection, key, value s
 		wg.Done()
 		return
 	}
-	resp.boards = users
+	resp.boards = boards
 	resp.err = err
 	ch <- resp
 	wg.Done()
@@ -210,4 +215,38 @@ func getAndConvert(c *mongo.Collection, id primitive.ObjectID, result any) error
 	}
 
 	return nil
+}
+
+func findByFieldPosts(ctx context.Context, coll *mongo.Collection, key, value string, ch chan<- findResultPosts, wg *sync.WaitGroup) {
+	log.Debug("Search started for", key, value)
+	resp := findResultPosts{}
+	filter := bson.D{
+		{Key: key, Value: value},
+	}
+
+	cursor, err := coll.Find(ctx, filter)
+	if err != nil {
+		log.Debug("Error occured in Find", key, value)
+		resp.posts = nil
+		resp.err = err
+		ch <- resp
+		wg.Done()
+		return
+	}
+
+	var posts []types.Post
+	err = cursor.All(ctx, &posts)
+	if err != nil {
+		log.Debug("Error occured in cursor.All", key, value)
+		resp.posts = nil
+		resp.err = err
+		ch <- resp
+		wg.Done()
+		return
+	}
+	resp.posts = posts
+	resp.err = err
+	ch <- resp
+	wg.Done()
+	log.Debug("No errors for", key, value)
 }
