@@ -93,3 +93,36 @@ func GetBoards(c *gin.Context, boardsColl *mongo.Collection) {
 	log.Debug(msgs.DebugStruct, "users", fmt.Sprintf("%#v\n", boards))
 	c.JSON(http.StatusOK, boards)
 }
+
+func GetBoard(c *gin.Context, boards *mongo.Collection) {
+	objid, err := idFromParams(c)
+	if err != nil {
+		return
+	}
+
+	filter := bson.M{"_id": objid}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	result := boards.FindOne(ctx, filter)
+
+	var board types.Board
+	err = result.Decode(&board)
+	if err == mongo.ErrNoDocuments {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"board not found",
+			"GetBoard", err,
+		))
+	} else if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed parsing documents, skill issue",
+			"msg", err,
+		))
+	}
+
+	log.Debug(msgs.DebugStruct, "board", fmt.Sprintf("%#v\n", board))
+	c.JSON(http.StatusOK, board)
+}

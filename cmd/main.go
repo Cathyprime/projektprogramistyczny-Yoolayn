@@ -112,15 +112,16 @@ func main() {
 
 	r := gin.Default()
 
-	r.POST("/posts", func(c *gin.Context) { handlers.NewPost(c, users) })
 	r.GET("/users", func(c *gin.Context) { handlers.GetUsers(c, users) })
 	r.POST("/users", func(c *gin.Context) { handlers.NewUser(c, users) })
 	r.GET("/users/:id", func(c *gin.Context) { handlers.GetUser(c, users) })
 	r.PUT("/users/:id", func(c *gin.Context) { handlers.UpdateUser(c, users) })
 	r.DELETE("/users/:id", func(c *gin.Context) { handlers.DeleteUser(c, users) })
 	r.GET("/users/search", func(c *gin.Context) { handlers.SearchUser(c, users) })
-	r.POST("/boards", func(c *gin.Context) { handlers.NewBoard(c, boards) })
+
 	r.GET("/boards", func(c *gin.Context) { handlers.GetBoards(c, boards) })
+	r.POST("/boards", func(c *gin.Context) { handlers.NewBoard(c, boards) })
+	r.GET("/boards/:id", func(c *gin.Context) { handlers.GetBoard(c, boards) })
 
 	srv := &http.Server{
 		Addr:    ":8080",
