@@ -45,6 +45,16 @@ function get_users() {
     curl -X GET $baseurl/users 2>/dev/null | jq
 }
 
+function bad_email() {
+    jq '.user.email |= "badmail.xdddd"'     \
+        < ./requests/user_test.json         \
+        | curl -X POST $baseurl/users       \
+        -H 'Content-Type: application/json' \
+        -d '@-'                             \
+        2>/dev/null                         \
+        | jq
+}
+
 # Create new user
 function new_user() {
     curl -X POST $baseurl/users              \

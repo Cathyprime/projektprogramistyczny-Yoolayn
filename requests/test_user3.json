@@ -5,6 +5,7 @@
     "password": "password3",
     "avatar": "avatar string",
     "pronouns": "she/her",
+    "email": "mail@email.com",
     "profilePrivacy": 2,
     "postPrivacy": 2
   }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"sync"
 	"time"
 
@@ -24,6 +25,15 @@ func NewUser(c *gin.Context, users *mongo.Collection) {
 
 	err := decodeBody(c, &body)
 	if err != nil {
+		return
+	}
+
+	_, err = mail.ParseAddress(body.User.Email)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrWrongEmailFormat,
+			"email not formated properly",
+		))
 		return
 	}
 
@@ -251,7 +261,7 @@ func SearchUser(c *gin.Context, users *mongo.Collection) {
 		length += len(v)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 200)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
 	var wg sync.WaitGroup

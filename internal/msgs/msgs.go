@@ -26,6 +26,7 @@ var (
 	ErrUpdateFailed      = errors.New("failed to update the user")
 	ErrUserCreation      = errors.New("failed creating user")
 	ErrWrongFormat       = errors.New("wrong body format")
+	ErrWrongEmailFormat  = errors.New("email not formated properly")
 )
 
 // debug
@@ -45,6 +46,7 @@ var msgmap = map[error]int{
 	ErrObjectIDConv:      http.StatusBadRequest,
 	ErrUpdateFailed:      http.StatusBadRequest,
 	ErrWrongFormat:       http.StatusBadRequest,
+	ErrWrongEmailFormat:  http.StatusBadRequest,
 }
 
 func ReportError(err error, content string, info ...any) (int, respError) {
