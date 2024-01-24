@@ -116,3 +116,89 @@ func GetPosts(c *gin.Context, posts *mongo.Collection) {
 
 	c.JSON(http.StatusOK, results)
 }
+
+func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collection, users *mongo.Collection) {
+	boardId, postId, err := postId(c)
+	if err != nil {
+		return
+	}
+
+	var bdy struct {
+		Post      types.Post         `json:"post"`
+		Requester primitive.ObjectID `json:"requester"`
+	}
+	err = decodeBody(c, &bdy)
+	if err != nil {
+		return
+	}
+
+	var post types.Post
+	err = getAndConvert(posts, postId, &post)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"post making skill issue",
+		))
+		return
+	}
+
+	var board types.Board
+	err = getAndConvert(boards, boardId, &board)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"board making skill issue",
+		))
+		return
+	}
+
+	var user types.User
+	err = getAndConvert(users, bdy.Requester, &user)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"user making skill issue",
+		))
+		return
+	}
+
+	if !(types.IsAdmin(user) || types.IsModerator(board, user) || post.Author == user.ID) {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"action is forbidden!",
+			"UpdatePost", "is neither an admin, moderator nor owner",
+		))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	update := bson.M{"$set": bdy.Post}
+
+	updateResult, err := posts.UpdateByID(ctx, postId, update)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"options failure",
+			"UpdatePost", err,
+		))
+		return
+	}
+
+	if updateResult.ModifiedCount == 0 {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrUpdateFailed,
+			"failed to update the board",
+			"UpdateBoard", updateResult,
+		))
+		return
+	}
+	c.JSON(http.StatusAccepted, struct {
+		Code   int    `json:"code"`
+		Status string `json:"status"`
+	}{
+		Code:   http.StatusCreated,
+		Status: "OK",
+	})
+}

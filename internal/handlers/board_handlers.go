@@ -193,11 +193,9 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	c.JSON(http.StatusAccepted, struct {
 		Code   int    `json:"code"`
 		Status string `json:"status"`
-		ID     int64  `json:"id"`
 	}{
 		Code:   http.StatusCreated,
 		Status: "OK",
-		ID:     updateResult.ModifiedCount,
 	})
 }
 

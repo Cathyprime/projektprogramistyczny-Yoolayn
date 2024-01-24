@@ -122,7 +122,7 @@
     - (x) Create a post:                POST        \/api/:boardName/posts
     - (x) Read all posts:               GET         \/api/:boardName/posts
     - (x) Read a specific post:         GET         \/api/:boardName/:postId
-    - ( ) Update a post:                PUT         \/api/:boardName/:postId
+    - (x) Update a post:                PUT         \/api/:boardName/:postId
     - ( ) Delete a post:                DELETE      \/api/:boardName/:postId
     - ( ) Search for post:              GET         \/api/:boardName/posts?
 

@@ -187,11 +187,9 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 	c.JSON(http.StatusAccepted, struct {
 		Code   int    `json:"code"`
 		Status string `json:"status"`
-		ID     int64  `json:"id"`
 	}{
 		Code:   http.StatusCreated,
 		Status: "OK",
-		ID:     updateResult.ModifiedCount,
 	})
 }
 

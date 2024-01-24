@@ -323,6 +323,19 @@ function get_post() {
     curl -X GET "$url" 2>/dev/null | jq
 }
 
+function update_post() {
+    post=$(get_post)
+    url="$baseurl/boards/$(jq '.board' <<< "$post" | sed 's#\("\|\\\)##g')/posts/$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')"
+
+    body=$(jq --argjson post "$post" '.post |= (.id = $post.id | .author = $post.author | .board = $post.board) | .requester = $post.author' < ./requests/updated_post.json)
+
+    curl -X PUT "$url"                      \
+        -H 'Content-Type: application/json' \
+        --data-binary @- <<< "$body"        \
+        2>/dev/null                         \
+        | jq
+}
+
 function get_posts() {
     post=$(new_post)
     id=$(jq '.board' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g' )

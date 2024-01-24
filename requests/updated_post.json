@@ -1,0 +1,10 @@
+{
+  "post": {
+    "title": "tame title",
+    "bodyType": 0,
+    "bodyContent": "updated post",
+    "votes": 10,
+    "author": "",
+    "board": ""
+  }
+}
