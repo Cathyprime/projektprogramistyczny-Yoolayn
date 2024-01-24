@@ -222,9 +222,7 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
-	filter := bson.M{
-		"_id": objid,
-	}
+	filter := bson.M{ "_id": objid, }
 
 	deleteResult, err := users.DeleteOne(ctx, filter)
 	if err != nil {

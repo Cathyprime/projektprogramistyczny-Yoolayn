@@ -27,6 +27,8 @@ search_user_by_bio bio1        # find the user by the bio of bio1
 search_user_by_both user1 bio2 # find the users that have either name=name1 or bio=bio2
 new_board                      # create a new board
 add_then_get_board             # get board by id
+add_then_update_board          # update a board
+add_then_delete                # delete a board
 '
 
 baseurl="localhost:8080"
@@ -257,6 +259,26 @@ function add_then_update_board() {
         < ./requests/update_board.json | tr '\n' ' ')
     full="{\"board\": $update, \"requester\": $owner }"
     echo "$full" | jq
+}
+
+function add_then_delete() {
+    board=$(add_then_get_board)
+    echo "created board:"
+    id=$(jq '.id' <<< "$board" | sed 's#"##g')
+    echo "$board" | jq
+
+    url="$baseurl/boards/$id"
+    body="{\"requester\": $(jq '.owner' <<< "$board")}"
+
+    echo "deleting:"
+    curl -X DELETE "$url"                  \
+        -H 'Content-Type: application/json'\
+        --data-binary "$body"              \
+        2>/dev/null                        \
+        | jq
+
+    echo "check"
+    curl -X GET "$url" 2>/dev/null | jq
 }
 
 function jobs() {

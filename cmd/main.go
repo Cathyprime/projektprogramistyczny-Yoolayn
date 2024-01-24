@@ -123,6 +123,7 @@ func main() {
 	r.POST("/boards", func(c *gin.Context) { handlers.NewBoard(c, boards) })
 	r.GET("/boards/:id", func(c *gin.Context) { handlers.GetBoard(c, boards) })
 	r.PUT("/boards/:id", func(c *gin.Context) { handlers.UpdateBoard(c, boards, users) })
+	r.DELETE("/boards/:id", func(c *gin.Context) { handlers.DeleteBoard(c, boards, users) })
 
 	srv := &http.Server{
 		Addr:    ":8080",

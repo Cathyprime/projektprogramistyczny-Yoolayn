@@ -115,12 +115,14 @@ func GetBoard(c *gin.Context, boards *mongo.Collection) {
 			"board not found",
 			"GetBoard", err,
 		))
+		return
 	} else if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
 			"failed parsing documents, skill issue",
 			"msg", err,
 		))
+		return
 	}
 
 	log.Debug(msgs.DebugStruct, "board", fmt.Sprintf("%#v\n", board))
@@ -149,7 +151,7 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
-			"A skill issue has occured",
+			"board making skill issue",
 		))
 		return
 	}
@@ -159,7 +161,7 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
-			"A skill issue has occured",
+			"user making skill issue",
 		))
 		return
 	}
@@ -204,5 +206,82 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 		Code:   http.StatusCreated,
 		Status: "OK",
 		ID:     updateResult.ModifiedCount,
+	})
+}
+
+func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collection) {
+	objid, err := idFromParams(c)
+	if err != nil {
+		return
+	}
+
+	body := struct {
+		Requester primitive.ObjectID `json:"requester"`
+	}{}
+
+	err = decodeBody(c, &body)
+	if err != nil {
+		return
+	}
+
+	var board types.Board
+	err = getAndConvert(boards, objid, &board)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"board making skill issue",
+		))
+		return
+	}
+
+	var user types.User
+	err = getAndConvert(users, body.Requester, &user)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"user making skill issue",
+		))
+		return
+	}
+
+	if !(types.IsAdmin(user) || types.IsModerator(board, user) || board.Owner == user.ID) {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"action is forbidden!",
+			"UpdateBoard", "is neither an admin, moderator nor owner",
+		))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	deleteResult, err := boards.DeleteOne(ctx, bson.M{"_id": objid})
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"internal error",
+			"DeleteBoard", err,
+		))
+		return
+	}
+
+	if deleteResult.DeletedCount != 1 {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"user failed to delete",
+			"DeleteUser", deleteResult.DeletedCount != 1,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, struct {
+		Code   int    `json:"code"`
+		Status string `json:"status"`
+		ID     int64  `json:"id"`
+	}{
+		Code:   http.StatusCreated,
+		Status: "OK",
+		ID:     deleteResult.DeletedCount,
 	})
 }

@@ -114,7 +114,7 @@
     - (x) Read all boards:               GET         \/api/boards
     - (x) Read a specific board:         GET         \/api/:boardName
     - (x) Update a board:                PUT         \/api/:boardName
-    - ( ) Delete a board:                DELETE      \/api/:boardName
+    - (x) Delete a board:                DELETE      \/api/:boardName
     - ( ) Search for board:              GET         \/api/boards?
 
 *** Posts:
