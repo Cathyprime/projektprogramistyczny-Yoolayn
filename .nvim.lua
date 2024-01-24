@@ -9,7 +9,7 @@ require("project").command({
 
 require("project").registers({
     m = ":e server/src/main.go\n",
-    u = ":!docker compose up -d\n",
-    d = ":!docker compose down\n",
-    j = [[0wye$a<Space>`json:"<C-R>""`<Esc>bb~]]
+    j = [[0wye$a<Space>`json:"<C-R>""`<Esc>bb~]],
+    b = ":e internal/handlers/board_handlers.go\n",
+    u = ":e internal/handlers/user_handlers.go\n",
 })

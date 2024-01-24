@@ -28,22 +28,23 @@ func NewUser(c *gin.Context, users *mongo.Collection) {
 	}
 
 	usr := body.User
-	log.Debug("usr", "struct", fmt.Sprintf("%#v", usr))
+	log.Debug(msgs.DebugStruct, "usr", fmt.Sprintf("%#v", usr))
 
-	debugJSON, _ := json.Marshal(usr)
-	log.Debug("usr", "json", string(debugJSON))
+	if log.GetLevel() == log.DebugLevel {
+		debugJSON, _ := json.MarshalIndent(usr, "", "\t")
+		log.Debug(msgs.DebugJSON, "usr", string(debugJSON))
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
 	result, optionsErr := users.InsertOne(ctx, usr)
 	if optionsErr != nil {
-		log.Error(optionsErr)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrBadOptions.Error(),
-			Content: "Bad options provided in the InsertOne",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"Bad options provided in the InsertOne",
+			optionsErr,
+		))
 		return
 	}
 	c.JSON(http.StatusCreated, struct {
@@ -63,24 +64,22 @@ func GetUsers(c *gin.Context, usersColl *mongo.Collection) {
 
 	cursor, err := usersColl.Find(ctx, bson.M{})
 	if err != nil {
-		log.Error(msgs.ErrBadOptions, "reason", "bad options provided for GetUsers")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrInternal.Error(),
-			Content: "Bad options provided for Find",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"Bad options provided for Find",
+			"reason", "bad options provided for GetUsers",
+		))
 		return
 	}
 
 	var users []types.User
 	err = cursor.All(ctx, &users)
 	if err != nil {
-		log.Error(msgs.ErrDecode, "GetUsers cursor", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrInternal.Error(),
-			Content: "Failed decoding cursor",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"Failed decoding cursor",
+			"GetUsers cursor", err,
+		))
 		return
 	}
 	log.Debug(msgs.DebugStruct, "users", fmt.Sprintf("%#v\n", users))
@@ -107,20 +106,18 @@ func GetUser(c *gin.Context, users *mongo.Collection) {
 	var user types.User
 	err = result.Decode(&user)
 	if err == mongo.ErrNoDocuments {
-		log.Warn(mongo.ErrNoDocuments, "getuser", err)
-		c.AbortWithStatusJSON(http.StatusNotFound, respError{
-			Code:    http.StatusBadRequest,
-			Error:   msgs.ErrNotFound.Error(),
-			Content: "user not found",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"user not found",
+			"getuser", err,
+		))
 		return
 	} else if err != nil {
-		log.Error(msgs.ErrInternal, "msg", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrInternal.Error(),
-			Content: "failed parsing documents, skill issue",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed parsing documents, skill issue",
+			"msg", err,
+		))
 		return
 	}
 
@@ -145,12 +142,11 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 
 	log.Debug("ids", objid.String(), bdy.Requester.ID.String())
 	if objid != bdy.Requester.ID {
-		log.Info(msgs.ErrForbidden, "UpdateUser", "ids aren't equal")
-		c.AbortWithStatusJSON(http.StatusForbidden, respError{
-			Code:    http.StatusForbidden,
-			Error:   msgs.ErrForbidden.Error(),
-			Content: "action is forbidden!",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"action is forbidden!",
+			"UpdateUser", "ids aren't equal",
+		))
 		return
 	}
 
@@ -161,22 +157,20 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 
 	updateResult, err := users.UpdateByID(ctx, objid, update)
 	if err != nil {
-		log.Error(msgs.ErrBadOptions, "UpdateUser", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrBadOptions.Error(),
-			Content: "options failure",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"options failure",
+			"UpdateUser", err,
+		))
 		return
 	}
 
 	if updateResult.ModifiedCount == 0 {
-		log.Warn(msgs.ErrUpdateFailed, "UpdateUser", updateResult)
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code:    http.StatusBadRequest,
-			Error:   msgs.ErrUpdateFailed.Error(),
-			Content: "failed to find the user",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrUpdateFailed,
+			"failed to find the user",
+			"UpdateUser", updateResult,
+		))
 		return
 	}
 
@@ -207,12 +201,11 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	}
 
 	if body.Requester.ID != objid {
-		log.Warn(msgs.ErrUpdateFailed, "UpdateUser", body.Requester.ID == objid)
-		c.AbortWithStatusJSON(http.StatusForbidden, respError{
-			Code:    http.StatusForbidden,
-			Error:   msgs.ErrForbidden.Error(),
-			Content: "action forbidden",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"action forbidden",
+			"UpdateUser", body.Requester.ID == objid,
+		))
 		return
 	}
 
@@ -225,22 +218,20 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 
 	deleteResult, err := users.DeleteOne(ctx, filter)
 	if err != nil {
-		log.Warn(msgs.ErrInternal, "DeleteUser", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrBadOptions.Error(),
-			Content: "internal error",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"internal error",
+			"DeleteUser", err,
+		))
 		return
 	}
 
 	if deleteResult.DeletedCount != 1 {
-		log.Warn(msgs.ErrNotFound, "DeleteUser", deleteResult.DeletedCount != 1)
-		c.AbortWithStatusJSON(http.StatusNotFound, respError{
-			Code:    http.StatusNotFound,
-			Error:   msgs.ErrNotFound.Error(),
-			Content: "user failed to delete",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"user failed to delete",
+			"DeleteUser", deleteResult.DeletedCount != 1,
+		))
 		return
 	}
 	c.JSON(http.StatusOK, struct {
@@ -288,12 +279,11 @@ func SearchUser(c *gin.Context, users *mongo.Collection) {
 
 	if len(values) == 0 {
 		log.Error(msgs.ErrNotFound, "SearchUser", len(values) == 0)
-		log.Debug(msgs.DebugStruct, "values", values)
-		c.AbortWithStatusJSON(http.StatusNotFound, respError{
-			Code: http.StatusNotFound,
-			Error: msgs.ErrNotFound.Error(),
-			Content: "no users found with provided parameters",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"no users found with provided parameters",
+			"values", values,
+		))
 		return
 	}
 

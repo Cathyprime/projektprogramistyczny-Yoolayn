@@ -2,7 +2,16 @@ package msgs
 
 import (
 	"errors"
+	"net/http"
+
+	"github.com/charmbracelet/log"
 )
+
+type respError struct {
+	Code    int    `json:"code"`
+	Error   string `json:"error"`
+	Content string `json:"reason"`
+}
 
 // error
 var (
@@ -23,4 +32,26 @@ var (
 var (
 	DebugStruct      = errors.New("the value of struct: ")
 	DebugSkippedLoop = errors.New("Loop skipped")
+	DebugJSON        = errors.New("the value of json: ")
 )
+
+var msgmap = map[error]int{
+	ErrBadOptions:        http.StatusInternalServerError,
+	ErrDecode:            http.StatusInternalServerError,
+	ErrFailedToGetParams: http.StatusInternalServerError,
+	ErrForbidden:         http.StatusForbidden,
+	ErrInternal:          http.StatusInternalServerError,
+	ErrNotFound:          http.StatusNotFound,
+	ErrObjectIDConv:      http.StatusBadRequest,
+	ErrUpdateFailed:      http.StatusBadRequest,
+	ErrWrongFormat:       http.StatusBadRequest,
+}
+
+func ReportError(err error, content string, info ...any) (int, respError) {
+	log.Error(err, info...)
+	return msgmap[err], respError{
+		Code:    msgmap[err],
+		Error:   err.Error(),
+		Content: content,
+	}
+}

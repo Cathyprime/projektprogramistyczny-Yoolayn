@@ -24,29 +24,23 @@ type findResult struct {
 	err error
 }
 
-type respError struct {
-	Code    int    `json:"code"`
-	Error   string `json:"error"`
-	Content string `json:"reason"`
-}
-
 func decodeBody(c *gin.Context, bdy interface{}) error {
 	log.Debug(msgs.DebugStruct, "bdy", bdy)
 	log.Debug(msgs.DebugStruct, "request body", c.Request.Body)
 	err := json.NewDecoder(c.Request.Body).Decode(bdy)
 	if err != nil {
-		log.Warn(msgs.ErrDecode, "body", "wrong format")
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code: http.StatusBadRequest,
-			Error:   msgs.ErrWrongFormat.Error(),
-			Content: "malformed data",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrWrongFormat,
+			"malformed data",
+			"body",
+			"wrong format",
+		))
 		return err
 	}
 	return nil
 }
 
-func Interrupt(s *http.Server, c *mongo.Collection) {
+func Interrupt(s *http.Server, collections ...*mongo.Collection) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -55,9 +49,11 @@ func Interrupt(s *http.Server, c *mongo.Collection) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	err := c.Drop(ctx)
-	if err != nil {
-		log.Fatal("Failed to drop users ", "reason:", err)
+	for _, c := range collections {
+		err := c.Drop(ctx)
+		if err != nil {
+			log.Fatal("Failed to drop collection ", "reason:", err)
+		}
 	}
 
 	if err := s.Shutdown(ctx); err != nil {
@@ -68,22 +64,22 @@ func Interrupt(s *http.Server, c *mongo.Collection) {
 func idFromParams(c *gin.Context) (primitive.ObjectID, error) {
 	id, ok := c.Params.Get("id")
 	if !ok {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, respError{
-			Code:    http.StatusInternalServerError,
-			Error:   msgs.ErrInternal.Error(),
-			Content: "Failed getting id parameter",
-		})
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"Failed getting id parameter",
+		))
 		return primitive.NilObjectID, msgs.ErrFailedToGetParams
 	}
 
 	objid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		log.Error(msgs.ErrObjectIDConv, "message", err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, respError{
-			Code:    http.StatusBadRequest,
-			Error:   msgs.ErrDecode.Error(),
-			Content: "wrong id",
-		})
+		log.Error(msgs.ErrObjectIDConv)
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrDecode,
+			"wrong id",
+			"message",
+			err,
+		))
 		return primitive.NilObjectID, msgs.ErrObjectIDConv
 	}
 	return objid, nil

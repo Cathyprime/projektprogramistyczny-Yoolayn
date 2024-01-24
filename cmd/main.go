@@ -109,6 +109,7 @@ func main() {
 
 	db := client.Database("redoot")
 	users := db.Collection("users")
+	boards := db.Collection("boards")
 
 	r := gin.Default()
 	r.GET("/", func(c *gin.Context) {
@@ -134,13 +135,14 @@ func main() {
 	r.PUT("/users/:id", func(c *gin.Context) { handlers.UpdateUser(c, users) })
 	r.DELETE("/users/:id", func(c *gin.Context) { handlers.DeleteUser(c, users) })
 	r.GET("/users/search", func(c *gin.Context) { handlers.SearchUser(c, users) })
+	r.POST("/boards", func(c *gin.Context) { handlers.NewBoard(c, boards) })
 
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: r,
 	}
 
-	go handlers.Interrupt(srv, users)
+	go handlers.Interrupt(srv, users, boards)
 
 	cancel()
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

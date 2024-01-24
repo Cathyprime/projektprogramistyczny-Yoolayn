@@ -8,6 +8,7 @@ kill $(jobs -P)
 docker compose down
 source requests.sh
 '
+
 : '
 # requests
 new_user                       # create new user
@@ -24,6 +25,7 @@ fill_dummy_users               # fill db with 5 users
 search_user_by_name user1      # find user by the name of name1
 search_user_by_bio bio1        # find the user by the bio of bio1
 search_user_by_both user1 bio2 # find the users that have either name=name1 or bio=bio2
+new_board                      # create a new board
 '
 
 baseurl="localhost:8080"
@@ -183,14 +185,33 @@ function search_user_by_both() {
         | jq
 }
 
+function new_board() {
+    ids=()
+
+    for _ in $(seq 1 "${1:-5}"); do
+        id=$(add_then_get | jq '.id')
+        ids+=("$id")
+    done
+
+    json=$(echo "{ \"moderators\": [$(echo "${ids[@]:1}" | tr ' ' ',')], \"owner\": ${ids[1]} }" | jq)
+    rdy=$(jq --argjson json "$json" '.board |= (.moderators = $json.moderators | .owner = $json.owner)' < ./requests/board_test.json)
+
+    echo "$rdy" | jq
+    echo "$rdy"                                 \
+        | curl -X POST "$baseurl/boards"        \
+            -H 'Content-Type: application/json' \
+            --data-binary @-                    \
+            2>/dev/null                         \
+        | jq
+}
+
 function fill_dummy_users() {
     files=$(ls ./requests/test_user?.json)
     while IFS= read -r file; do
-        cat $file                                \
-            | curl -X POST $baseurl/users        \
-            -H 'Content-Type: application/json'  \
-            --data-binary @-                     \
-            2>/dev/null                          \
+        curl -X POST "$baseurl/users"           \
+            -H 'Content-Type: application/json' \
+            --data-binary @-                    \
+            2>/dev/null < "$file"               \
             | jq
     done <<< "$files"
 }

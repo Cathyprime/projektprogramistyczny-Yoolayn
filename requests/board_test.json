@@ -1,0 +1,9 @@
+{
+  "board": {
+    "name": "board_example1",
+    "bio": "bio1",
+    "moderators": [],
+    "owner": "",
+    "rules": "rules"
+  }
+}

@@ -100,26 +100,34 @@
    - ( ) search boards/posts/users
 
 ** Api
+*** Users:
+    - (x) Create a user:                POST         \/api/users
+    - (x) Read all users:               GET          \/api/users
+    - (x) Read a specific user:         GET          \/api/users/:userId
+    - (x) Update a user:                PUT          \/api/users/:userId
+    - (x) Delete a user:                DELETE       \/api/users/:userId
+    - ( ) Login a user                  CONNECT      \/api/users/:userid
+    - (x) Search for user:              GET          \/api/users?
+
+*** Boards:
+    - (x) Create a board:                POST        \/api/boards
+    - ( ) Read all boards:               GET         \/api/boards
+    - ( ) Read a specific board:         GET         \/api/:boardName
+    - ( ) Update a board:                PUT         \/api/:boardName
+    - ( ) Delete a board:                DELETE      \/api/:boardName
+    - ( ) Search for board:              GET         \/api/boards?
+
 *** Posts:
-    - ( ) Create a post:                POST           \/api/posts
-    - ( ) Read all posts:               GET            \/api/posts
-    - ( ) Read a specific post:         GET            \/api/posts/:postId
-    - ( ) Update a post:                PUT            \/api/posts/:postId
-    - ( ) Delete a post:                DELETE         \/api/posts/:postId
-    - ( ) Search for post:              GET            \/api/posts?
+    - ( ) Create a post:                POST        \/api/:boardName/posts
+    - ( ) Read all posts:               GET         \/api/:boardName/posts
+    - ( ) Read a specific post:         GET         \/api/:boardName/:postId
+    - ( ) Update a post:                PUT         \/api/:boardName/:postId
+    - ( ) Delete a post:                DELETE      \/api/:boardName/:postId
+    - ( ) Search for post:              GET         \/api/:boardName/posts?
 
 *** Comments:
-    - ( ) Create a comment:             POST           \/api/posts/:postId/comments
-    - ( ) Read all comments on a post:  GET            \/api/posts/:postId/comments
-    - ( ) Read a specific comment:      GET            \/api/posts/:postId/comments/:commentId
-    - ( ) Update a comment:             PUT            \/api/posts/:postId/comments/:commentId
-    - ( ) Delete a comment:             DELETE         \/api/posts/:postId/comments/:commentId
-
-*** Users:
-    - (x) Create a user:                POST           \/api/users
-    - (x) Read all users:               GET            \/api/users
-    - (x) Read a specific user:         GET            \/api/users/:userId
-    - (x) Update a user:                PUT            \/api/users/:userId
-    - (x) Delete a user:                DELETE         \/api/users/:userId
-    - ( ) Login a user                  CONNECT        \/api/users/:userid
-    - (x) Search for user:              GET            \/api/users?
+    - ( ) Create a comment:             POST         \/api/:boardName/:postId/comments
+    - ( ) Read all comments on a post:  GET          \/api/:boardName/:postId/comments
+    - ( ) Read a specific comment:      GET          \/api/:boardName/:postId/comments/:commentId
+    - ( ) Update a comment:             PUT          \/api/:boardName/:postId/comments/:commentId
+    - ( ) Delete a comment:             DELETE       \/api/:boardName/:postId/comments/:commentId

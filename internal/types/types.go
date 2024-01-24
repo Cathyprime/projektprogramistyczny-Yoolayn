@@ -75,12 +75,12 @@ func (u User) Equal(o User) bool {
 }
 
 type Board struct {
-	ID         primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
-	Name       string             `json:"name" bson:"name"`
-	Bio        string             `json:"bio" bson:"bio"`
-	Moderators []User             `json:"moderators" bson:"moderators"`
-	Owner      User               `json:"owner" bson:"owner"`
-	Rules      string             `json:"rules" bson:"rules"`
+	ID         primitive.ObjectID   `json:"id,omitempty" bson:"_id,omitempty"`
+	Name       string               `json:"name" bson:"name"`
+	Bio        string               `json:"bio" bson:"bio"`
+	Moderators []primitive.ObjectID `json:"moderators" bson:"moderators"`
+	Owner      primitive.ObjectID   `json:"owner" bson:"owner"`
+	Rules      string               `json:"rules" bson:"rules"`
 }
 
 type Post struct {
@@ -90,7 +90,7 @@ type Post struct {
 	BodyContent string             `json:"bodyContent" bson:"bodyContent"`
 	Votes       int                `json:"votes" bson:"votes"`
 	Author      User               `json:"author" bson:"author"`
-	Board       Board              `json:"board"`
+	Board       Board              `json:"board" bson:"board"`
 }
 
 func AddAdministrators(newAdmins ...User) {
@@ -117,7 +117,7 @@ func IsAdmin(u User) bool {
 }
 
 func IsModerator(b Board, u User) bool {
-	return slices.Contains(b.Moderators, u)
+	return slices.Contains(b.Moderators, u.ID)
 }
 
 func (p Post) CanEditPost(b Board, u User) bool {
