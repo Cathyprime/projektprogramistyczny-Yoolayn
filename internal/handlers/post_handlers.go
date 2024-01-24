@@ -7,6 +7,7 @@ import (
 
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/types"
+	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -200,5 +201,92 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	}{
 		Code:   http.StatusCreated,
 		Status: "OK",
+	})
+}
+
+func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collection, users *mongo.Collection) {
+	boardId, postId, err := postId(c)
+	if err != nil {
+		return
+	}
+
+	var bdy struct {
+		Requester primitive.ObjectID `json:"requester"`
+	}
+	err = decodeBody(c, &bdy)
+	if err != nil {
+		return
+	}
+
+	log.Debug(msgs.DebugStruct, "bdy", bdy)
+
+	var post types.Post
+	err = getAndConvert(posts, postId, &post)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			err.Error(),
+		))
+		return
+	}
+
+	var board types.Board
+	err = getAndConvert(boards, boardId, &board)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"skill issue making board",
+		))
+		return
+	}
+
+	var user types.User
+	err = getAndConvert(users, bdy.Requester, &user)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"skill issue making user",
+		))
+		return
+	}
+
+	if !(types.IsAdmin(user) || types.IsModerator(board, user) || post.Author == user.ID) {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"action is forbidden!",
+			"UpdatePost", "is neither an admin, moderator nor owner",
+		))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	deleteResult, err := posts.DeleteOne(ctx, bson.M{"_id": postId})
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"skill issue",
+		))
+		return
+	}
+
+	if deleteResult.DeletedCount != 1 {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotFound,
+			"post failed to delete",
+			"DeleteUser", deleteResult.DeletedCount != 1,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, struct {
+		Code   int    `json:"code"`
+		Status string `json:"status"`
+		ID     int64  `json:"id"`
+	}{
+		Code:   http.StatusCreated,
+		Status: "OK",
+		ID:     deleteResult.DeletedCount,
 	})
 }

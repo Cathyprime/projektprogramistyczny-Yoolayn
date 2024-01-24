@@ -31,9 +31,9 @@ var (
 
 // debug
 var (
-	DebugStruct      = errors.New("the value of struct: ")
+	DebugStruct      = errors.New("the value of struct:")
 	DebugSkippedLoop = errors.New("Loop skipped")
-	DebugJSON        = errors.New("the value of json: ")
+	DebugJSON        = errors.New("the value of json:")
 )
 
 var msgmap = map[error]int{

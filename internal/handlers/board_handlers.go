@@ -259,7 +259,7 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	if deleteResult.DeletedCount != 1 {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrNotFound,
-			"user failed to delete",
+			"board failed to delete",
 			"DeleteUser", deleteResult.DeletedCount != 1,
 		))
 		return

@@ -131,6 +131,7 @@ func main() {
 	r.GET("/boards/:id/posts/:postId", func(c *gin.Context) { handlers.GetPost(c, posts) })
 	r.GET("/boards/:id/posts", func(c *gin.Context) { handlers.GetPosts(c, posts) })
 	r.PUT("/boards/:id/posts/:postId", func(c *gin.Context) { handlers.UpdatePost(c, posts, boards, users) })
+	r.DELETE("/boards/:id/posts/:postId", func(c *gin.Context) { handlers.DeletePost(c, posts, boards, users) })
 
 	srv := &http.Server{
 		Addr:    ":8080",

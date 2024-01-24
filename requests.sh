@@ -32,8 +32,10 @@ add_then_update_board                 # update a board
 add_then_delete                       # delete a board
 search_board_by_name "board_example1" # search the board by name
 new_post                              # create new post
-get_post
-get_posts
+get_post                              # get post by id
+get_posts                             # get all posts in a board
+update_post                           # update a post
+delete_post                           # delete specified post
 '
 
 baseurl="localhost:8080"
@@ -343,6 +345,27 @@ function get_posts() {
 
     n_new_posts "$id" 5
 
+    curl -X GET "$url" 2>/dev/null | jq
+}
+
+function delete_post() {
+    post=$(get_post)
+    echo "new post:"
+    echo "$post" | jq
+    boardid=$(jq '.board' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+    postid=$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+
+    url="$baseurl/boards/$boardid/posts/$postid"
+
+    body="{\"requester\": $(jq '.author' <<< "$post" )}"
+    echo "deleting:"
+    curl -X DELETE "$url"                  \
+        -H 'Content-Type: application/json'\
+        --data-binary "$body"              \
+        2>/dev/null                        \
+        | jq
+
+    echo "check"
     curl -X GET "$url" 2>/dev/null | jq
 }
 
