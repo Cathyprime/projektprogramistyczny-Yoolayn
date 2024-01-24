@@ -11,6 +11,7 @@ import (
 	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/types"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -63,4 +64,32 @@ func NewBoard(c *gin.Context, boards *mongo.Collection) {
 		Status: "OK",
 		ID:     result.InsertedID.(primitive.ObjectID).String(),
 	})
+}
+
+func GetBoards(c *gin.Context, boardsColl *mongo.Collection) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	cursor, err := boardsColl.Find(ctx, bson.M{})
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"Bad options provided for Find",
+			"reason", "bad options provided for GetBoards",
+		))
+		return
+	}
+
+	var boards []types.Board
+	err = cursor.All(ctx, &boards)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"Failed decoding cursor",
+			"GetBoards cursor", err,
+		))
+		return
+	}
+	log.Debug(msgs.DebugStruct, "users", fmt.Sprintf("%#v\n", boards))
+	c.JSON(http.StatusOK, boards)
 }

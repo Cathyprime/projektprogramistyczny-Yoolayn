@@ -112,6 +112,13 @@ func RemoveAdministrators(remove ...User) {
 	}
 }
 
+func IdToStruct(id *primitive.ObjectID, c *mongo.Collection) *mongo.SingleResult {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 200)
+	defer cancel()
+
+	return c.FindOne(ctx, bson.M{"_id": id})
+}
+
 func IsAdmin(u User) bool {
 	return slices.Contains(Administrators, u)
 }

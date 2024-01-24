@@ -11,7 +11,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -112,21 +111,6 @@ func main() {
 	boards := db.Collection("boards")
 
 	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
-		defer cancel()
-		filter := bson.M{"_id": handlers.CreateHelloWorld(ctx, users).InsertedID}
-		var resultFind struct {
-			Message string `bson:"message"`
-		}
-
-		err := users.FindOne(ctx, filter).Decode(&resultFind)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		c.String(http.StatusOK, resultFind.Message)
-	})
 
 	r.POST("/posts", func(c *gin.Context) { handlers.NewPost(c, users) })
 	r.GET("/users", func(c *gin.Context) { handlers.GetUsers(c, users) })
@@ -136,6 +120,7 @@ func main() {
 	r.DELETE("/users/:id", func(c *gin.Context) { handlers.DeleteUser(c, users) })
 	r.GET("/users/search", func(c *gin.Context) { handlers.SearchUser(c, users) })
 	r.POST("/boards", func(c *gin.Context) { handlers.NewBoard(c, boards) })
+	r.GET("/boards", func(c *gin.Context) { handlers.GetBoards(c, boards) })
 
 	srv := &http.Server{
 		Addr:    ":8080",

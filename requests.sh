@@ -169,19 +169,25 @@ function delete_noauth() {
 
 function search_user_by_name() {
     curl -X GET $baseurl/users/search\?name="$1" \
-        2>/dev/null                             \
+        2>/dev/null                              \
         | jq
 }
 
 function search_user_by_bio() {
     curl -X GET $baseurl/users/search\?bio="$1" \
-        2>/dev/null                            \
+        2>/dev/null                             \
         | jq
 }
 
 function search_user_by_both() {
     curl -X GET $baseurl/users/search\?name="$1"\&bio="$2" \
-        2>/dev/null                                       \
+        2>/dev/null                                        \
+        | jq
+}
+
+function get_boards() {
+    curl -X GET $baseurl/boards \
+        2>/dev/null             \
         | jq
 }
 

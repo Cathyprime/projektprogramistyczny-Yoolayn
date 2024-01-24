@@ -111,7 +111,7 @@
 
 *** Boards:
     - (x) Create a board:                POST        \/api/boards
-    - ( ) Read all boards:               GET         \/api/boards
+    - (x) Read all boards:               GET         \/api/boards
     - ( ) Read a specific board:         GET         \/api/:boardName
     - ( ) Update a board:                PUT         \/api/:boardName
     - ( ) Delete a board:                DELETE      \/api/:boardName
