@@ -93,6 +93,12 @@ type Post struct {
 	Board       primitive.ObjectID `json:"board" bson:"board"`
 }
 
+type Comment struct {
+	ID     primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Author primitive.ObjectID `json:"author" bson:"author"`
+	Body   string             `json:"body" bson:"body"`
+}
+
 func AddAdministrators(newAdmins ...User) {
 	Administrators = append(Administrators, newAdmins...)
 }

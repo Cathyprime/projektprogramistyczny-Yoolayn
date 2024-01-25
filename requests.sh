@@ -36,6 +36,7 @@ get_post                              # get post by id
 get_posts                             # get all posts in a board
 update_post                           # update a post
 delete_post                           # delete specified post
+search_post "outragous title"         # search for a post with title
 '
 
 baseurl="localhost:8080"
@@ -372,6 +373,27 @@ function delete_post() {
 function search_board_by_name() {
     curl -X GET $baseurl/boards/search\?name="$1" \
         2>/dev/null                              \
+        | jq
+}
+
+function search_post() {
+    name=$1
+    post=$(get_post)
+    id=$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+    post2=$(jq "del(.id) | .title |= \"$name\"" <<< "$post")
+    post2=$(jq --argjson post "$post2" '.post |= $post' <<< '{ "post": "" }')
+    board=$(jq '.board' <<< "$post2" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+
+    url="$baseurl/boards/$board/posts"
+    curl -X POST "$url"                    \
+        -H 'Content-Type: application/json'\
+        --data-binary @- <<< "$post2"      \
+        2>/dev/null                        \
+        | jq
+
+    url="$baseurl/boards/$board/posts/search?title=$name"
+    curl -X GET "$url"\
+        2>/dev/null   \
         | jq
 }
 
