@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"redoot/internal/msgs"
+	"redoot/internal/types"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
-	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/types"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -33,7 +33,7 @@ type findResultBoards struct {
 
 type findResultPosts struct {
 	posts []types.Post
-	err    error
+	err   error
 }
 
 func decodeBody(c *gin.Context, bdy interface{}) error {
@@ -69,6 +69,67 @@ func Interrupt(s *http.Server, collections ...*mongo.Collection) {
 	if err := s.Shutdown(ctx); err != nil {
 		log.Fatal("Error Shutting down: ", "reason:", err)
 	}
+}
+
+func commentIdParams(c *gin.Context) (primitive.ObjectID, primitive.ObjectID, primitive.ObjectID, error) {
+	boardId, ok := c.Params.Get("id")
+	if !ok {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting board ID",
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrFailedToGetParams
+	}
+
+	boardObjId, err := primitive.ObjectIDFromHex(boardId)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrObjectIDConv,
+			"wrong id",
+			"message", err,
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrObjectIDConv
+	}
+
+	postId, ok := c.Params.Get("postId")
+	if !ok {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting post id",
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrFailedToGetParams
+	}
+
+	postObjId, err := primitive.ObjectIDFromHex(postId)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrObjectIDConv,
+			"wrong id",
+			"message", err,
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrObjectIDConv
+	}
+
+	commentId, ok := c.Params.Get("commentId")
+	if !ok {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting comment id",
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrFailedToGetParams
+	}
+
+	commentObjId, err := primitive.ObjectIDFromHex(commentId)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrObjectIDConv,
+			"wrong id",
+			"message", err,
+		))
+		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrObjectIDConv
+	}
+
+	return boardObjId, postObjId, commentObjId, nil
 }
 
 func postId(c *gin.Context) (primitive.ObjectID, primitive.ObjectID, error) {

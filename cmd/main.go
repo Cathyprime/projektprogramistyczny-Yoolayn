@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/handlers"
-	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
+	"redoot/internal/handlers"
+	"redoot/internal/msgs"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"

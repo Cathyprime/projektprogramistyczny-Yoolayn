@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/msgs"
-	"github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn/internal/types"
+	"redoot/internal/msgs"
+	"redoot/internal/types"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"

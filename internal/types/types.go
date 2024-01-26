@@ -96,6 +96,7 @@ type Post struct {
 type Comment struct {
 	ID     primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	Author primitive.ObjectID `json:"author" bson:"author"`
+	Post   primitive.ObjectID `json:"post" bson:"post"`
 	Body   string             `json:"body" bson:"body"`
 }
 

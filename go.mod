@@ -1,4 +1,4 @@
-module github.com/UniversityOfGdanskProjects/projektprogramistyczny-Yoolayn
+module redoot
 
 go 1.21.5
 
