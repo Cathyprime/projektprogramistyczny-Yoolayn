@@ -3,11 +3,11 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"redoot/internal/msgs"
+	"redoot/internal/types"
 	"sync"
 	"time"
 
-	"redoot/internal/msgs"
-	"redoot/internal/types"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -17,11 +17,21 @@ import (
 
 func NewPost(c *gin.Context, posts *mongo.Collection) {
 	body := struct {
-		Post types.Post `json:"post"`
+		Post      types.Post        `json:"post"`
+		Requester types.Credentials `json:"requester"`
 	}{}
 
 	err := decodeBody(c, &body)
 	if err != nil {
+		return
+	}
+
+	if err := body.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+			"error", err,
+		))
 		return
 	}
 
@@ -126,11 +136,20 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	}
 
 	var bdy struct {
-		Post      types.Post         `json:"post"`
-		Requester primitive.ObjectID `json:"requester"`
+		Post      types.Post        `json:"post"`
+		Requester types.Credentials `json:"requester"`
 	}
 	err = decodeBody(c, &bdy)
 	if err != nil {
+		return
+	}
+
+	if err := bdy.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+			"error", err,
+		))
 		return
 	}
 
@@ -154,12 +173,12 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 		return
 	}
 
-	var user types.User
-	err = getAndConvert(users, bdy.Requester, &user)
+	user, err := bdy.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
-			"user making skill issue",
+			"skill issue making user",
+			"error", err,
 		))
 		return
 	}
@@ -212,14 +231,21 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	}
 
 	var bdy struct {
-		Requester primitive.ObjectID `json:"requester"`
+		Requester types.Credentials `json:"requester"`
 	}
 	err = decodeBody(c, &bdy)
 	if err != nil {
 		return
 	}
 
-	log.Debug(msgs.DebugStruct, "bdy", bdy)
+	if err := bdy.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+			"error", err,
+		))
+		return
+	}
 
 	var post types.Post
 	err = getAndConvert(posts, postId, &post)
@@ -241,12 +267,12 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 		return
 	}
 
-	var user types.User
-	err = getAndConvert(users, bdy.Requester, &user)
+	user, err := bdy.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
 			"skill issue making user",
+			"error", err,
 		))
 		return
 	}
