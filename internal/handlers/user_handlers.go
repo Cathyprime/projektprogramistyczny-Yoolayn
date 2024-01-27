@@ -55,7 +55,7 @@ func NewUser(c *gin.Context, users *mongo.Collection) {
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(usr.Password), 4)
+	hash, err := bcrypt.GenerateFromPassword([]byte(usr.Password), bcrypt.MinCost)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrEncryption,
@@ -174,12 +174,30 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 	if err = bdy.Requester.Authorize(); err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrNotAuthorized,
-			"user is wasn't authorized",
+			"user wasn't authorized",
+			"error", err,
 		))
 		return
 	}
 
-	if objid != bdy.Requester.ID {
+	if ok := bdy.User.IsTaken(); !ok {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrTaken,
+			"username is taken",
+		))
+		return
+	}
+
+	usr, err := bdy.Requester.ToUser()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"internal error",
+		))
+		return
+	}
+
+	if objid != usr.ID {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrForbidden,
 			"action is forbidden!",
@@ -228,7 +246,7 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	}
 
 	body := struct {
-		Requester types.User `json:"requester"`
+		Requester types.Credentials `json:"requester"`
 	}{}
 
 	err = decodeBody(c, &body)
@@ -236,11 +254,28 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 		return
 	}
 
-	if body.Requester.ID != objid {
+	if err := body.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+		))
+		return
+	}
+
+	usr, err := body.Requester.ToUser()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"internal error",
+		))
+		return
+	}
+
+	if usr.ID != objid {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrForbidden,
 			"action forbidden",
-			"UpdateUser", body.Requester.ID == objid,
+			"UpdateUser", usr.ID == objid,
 		))
 		return
 	}

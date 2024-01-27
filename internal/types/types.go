@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -115,8 +116,8 @@ type Comment struct {
 }
 
 type Credentials struct {
-	Name     string
-	Password string
+	Name       string `json:"name"`
+	Password   string `json:"password"`
 	authorized bool
 }
 
@@ -134,6 +135,8 @@ func (c *Credentials) Authorize() error {
 		return err
 	}
 
+	log.Debug("password", "usr", usr.Password)
+	log.Debug("password", "  c", c.Password)
 	err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(c.Password))
 	if err != nil {
 		return err

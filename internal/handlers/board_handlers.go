@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"redoot/internal/msgs"
+	"redoot/internal/types"
 	"sync"
 	"time"
 
-	"redoot/internal/msgs"
-	"redoot/internal/types"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,7 +19,8 @@ import (
 
 func NewBoard(c *gin.Context, boards *mongo.Collection) {
 	body := struct {
-		Board types.Board `json:"board"`
+		Board     types.Board       `json:"board"`
+		Requester types.Credentials `json:"requester"`
 	}{}
 
 	err := decodeBody(c, &body)
@@ -33,6 +34,16 @@ func NewBoard(c *gin.Context, boards *mongo.Collection) {
 	if log.GetLevel() == log.DebugLevel {
 		debugJSON, _ := json.MarshalIndent(board, "", "  ")
 		log.Debug(msgs.DebugJSON, "board", string(debugJSON))
+	}
+
+	err = body.Requester.Authorize()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user wasn't authorized",
+			"error", err,
+		))
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
@@ -128,15 +139,13 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	}
 
 	var bdy struct {
-		Board     types.Board        `json:"board"`
-		Requester primitive.ObjectID `json:"requester"`
+		Board     types.Board       `json:"board"`
+		Requester types.Credentials `json:"requester"`
 	}
 	err = decodeBody(c, &bdy)
 	if err != nil {
 		return
 	}
-
-	log.Debug("ids", objid.String(), bdy.Requester.String())
 
 	var board types.Board
 	err = getAndConvert(boards, objid, &board)
@@ -148,12 +157,19 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 		return
 	}
 
-	var user types.User
-	err = getAndConvert(users, objid, &user)
+	if err := bdy.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+		))
+		return
+	}
+
+	user, err := bdy.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
-			"user making skill issue",
+			"failed getting user",
 		))
 		return
 	}
@@ -170,14 +186,14 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
-	update := bson.M{"set": bdy.Board}
+	update := bson.M{"$set": bdy.Board}
 
 	updateResult, err := boards.UpdateByID(ctx, objid, update)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrBadOptions,
 			"options failure",
-			"UpdateUser", err,
+			"UpdateBoard", err,
 		))
 		return
 	}
@@ -206,11 +222,19 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	}
 
 	body := struct {
-		Requester primitive.ObjectID `json:"requester"`
+		Requester types.Credentials `json:"requester"`
 	}{}
 
 	err = decodeBody(c, &body)
 	if err != nil {
+		return
+	}
+
+	if err := body.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+		))
 		return
 	}
 
@@ -224,8 +248,7 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 		return
 	}
 
-	var user types.User
-	err = getAndConvert(users, body.Requester, &user)
+	user, err := body.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,

@@ -71,7 +71,7 @@ function add_then_get() {
     id=$(                                    \
         new_user                             \
         | jq '.id'                           \
-        | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+        | sed -E 's#ObjectID|"|\(|\)|\\##g')
 
     url="$baseurl/users/$id"
 
@@ -81,12 +81,9 @@ function add_then_get() {
 }
 
 function add_then_update() {
-    local id
-    id=$(                                    \
-        new_user                             \
-        | jq '.id'                           \
-        | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
-
+    local user
+    user=$(add_then_get)
+    id=$(jq '.id' <<< "$user" | sed -E 's#ObjectID|"|\(|\)|\\##g')
     echo "id created: $id"
 
     local url="$baseurl/users/$id"
@@ -95,7 +92,9 @@ function add_then_update() {
     curl -X GET "$url" 2>/dev/null | jq
 
     local json
-    json=$(jq -s '.[0] * .[1]' requests/update_user.json <(echo "{\"requester\": {\"id\": \"$id\"}}"))
+    json=$(jq -s '.[0] * .[1]' requests/update_user.json <(echo "{\"requester\": {\"name\": $(jq '.name' <<< "$user"), \"password\": \"password1\"}}"))
+    echo "payload:"
+    echo "$json" | jq
 
     echo "update response: "
     curl -X PUT "$url"                      \
@@ -146,10 +145,8 @@ function get_bad() {
 
 function create_delete_get() {
     local id
-    id=$(                                    \
-        new_user                             \
-        | jq '.id'                           \
-        | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+    user=$(add_then_get)
+    id=$(jq '.id' <<< "$user" | sed -E 's#ObjectID|"|\(|\)|\\##g')
     
     echo "created user of id: $id"
 
@@ -158,7 +155,7 @@ function create_delete_get() {
     echo "deleted:"
     curl -X DELETE "$url"                                   \
         -H 'Content-Type: application/json'                 \
-        -d "{\"requester\": {\"id\": \"$id\"}}" 2>/dev/null \
+        -d "{\"requester\": {\"password\": \"password1\", \"name\": $(jq '.name' <<< "$user")}}" 2>/dev/null \
         | jq
 
     echo "checking if deleted:"
@@ -207,21 +204,29 @@ function get_boards() {
 
 function new_board() {
     ids=()
+    local owner
 
-    for _ in $(seq 1 "${1:-5}"); do
-        id=$(add_then_get | jq '.id')
+    for x in $(seq 1 "${1:-5}"); do
+        post=$(add_then_get)
+        if ((x == 1)); then
+            owner="$post"
+        fi
+        id=$(jq '.id' <<< "$post")
         ids+=("$id")
     done
 
-    json=$(echo "{ \"moderators\": [$(echo "${ids[@]:1}" | tr ' ' ',')], \"owner\": ${ids[1]} }" | jq)
-    rdy=$(jq --argjson json "$json" '.board |= (.moderators = $json.moderators | .owner = $json.owner)' < ./requests/board_test.json)
+    json=$(echo "{ \"requester\": { \"name\": $(jq '.name' <<< "$owner"), \"password\": \"password1\" }, \"moderators\": [$(echo "${ids[@]:1}" | tr ' ' ',')], \"owner\": ${ids[1]} }" | jq)
+    rdy=$(jq --argjson json "$json" '.board |= (.moderators = $json.moderators | .owner = $json.owner ) | .requester |= $json.requester' < ./requests/board_test.json)
 
+    response=$(\
     echo "$rdy"                                 \
         | curl -X POST "$baseurl/boards"        \
-            -H 'Content-Type: application/json' \
-            --data-binary @-                    \
-            2>/dev/null                         \
+        -H 'Content-Type: application/json' \
+        --data-binary @-                    \
+        2>/dev/null                         \
         | jq
+    )
+    jq -n --argjson response "$response" --argjson owner "$owner" '{"response": $response, "owner": $owner }' | jq '.owner.password |= "password1"'
 }
 
 function fill_dummy_users() {
@@ -236,40 +241,51 @@ function fill_dummy_users() {
 }
 
 function add_then_get_board() {
-    id=$(                                    \
-        new_board 3                          \
-        | jq '.id'                           \
-        | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
-
+    board=$(new_board 3)
+    id=$(jq '.response.id' <<< "$board" | sed -E 's#ObjectID|"|\(|\)|\\##g')
     url="$baseurl/boards/$id"
 
+    response=$(
     curl -X GET "$url" \
         2>/dev/null    \
         | jq
+    )
+    jq -n --argjson resp "$response" --argjson own "$(jq '.owner' <<< "$board")" '{response: $resp, owner: $own}'
 }
 
 function add_then_update_board() {
     board=$(add_then_get_board)
     echo "original board:"
-    echo "$board" | jq
+    echo "$board" | jq '.response'
+    id=$(jq '.response.id' <<< "$board" | sed -E 's#ObjectID|"|\(|\)|\\##g')
     echo "updated:"
     owner=$(echo "$board" | jq '.owner')
     update=$(jq                                                                           \
-        --argjson board "$board"                                                          \
-        '. |= (.id = $board.id | .moderators = $board.moderators | .owner = $board.owner)'\
+        --argjson board "$(jq '.response' <<< "$board")"                                                          \
+        '. |= ( .moderators = $board.moderators | .owner = $board.owner) | del(.id)'\
         < ./requests/update_board.json | tr '\n' ' ')
-    full="{\"board\": $update, \"requester\": $owner }"
-    echo "$full" | jq
+    full="{\"board\": $update, \"requester\": \"\" }"
+    full=$(jq --argjson own "$owner" '.requester = {name: $own.name, password: $own.password}' <<< "$full")
+    url="$baseurl/boards/$id"
+    
+    curl -X PUT "$url"                      \
+        -H 'Content-Type: application/json' \
+        --data-binary @- <<< "$full"        \
+        2>/dev/null                         \
+        | jq
+    curl -X GET "$url" 2>/dev/null | jq
 }
 
 function add_then_delete() {
     board=$(add_then_get_board)
     echo "created board:"
-    id=$(jq '.id' <<< "$board" | sed 's#"##g')
-    echo "$board" | jq
+    id=$(jq '.response.id' <<< "$board" | sed 's#"##g')
+    echo "$id"
+    echo "$board" | jq '.response'
 
     url="$baseurl/boards/$id"
-    body="{\"requester\": $(jq '.owner' <<< "$board")}"
+    body="{\"requester\": $(jq '{name: .owner.name, password: .owner.password}' <<< "$board")}"
+    echo "$body" | jq
 
     echo "deleting:"
     curl -X DELETE "$url"                  \
@@ -278,7 +294,7 @@ function add_then_delete() {
         2>/dev/null                        \
         | jq
 
-    echo "check"
+    echo "check:"
     curl -X GET "$url" 2>/dev/null | jq
 }
 
@@ -314,14 +330,14 @@ function n_new_posts() {
 
 function get_post() {
     post=$(new_post)
-    url="$baseurl/boards/$(jq '.board' <<< "$post" | sed 's#\("\|\\\)##g')/posts/$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')"
+    url="$baseurl/boards/$(jq '.board' <<< "$post" | sed 's#\("\|\\\)##g')/posts/$(jq '.id' <<< "$post" | sed -E 's#ObjectID|"|\(|\)|\\##g')"
 
     curl -X GET "$url" 2>/dev/null | jq
 }
 
 function update_post() {
     post=$(get_post)
-    url="$baseurl/boards/$(jq '.board' <<< "$post" | sed 's#\("\|\\\)##g')/posts/$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')"
+    url="$baseurl/boards/$(jq '.board' <<< "$post" | sed 's#\("\|\\\)##g')/posts/$(jq '.id' <<< "$post" | sed -E 's#ObjectID|"|\(|\)|\\##g')"
 
     body=$(jq --argjson post "$post" '.post |= (.id = $post.id | .author = $post.author | .board = $post.board) | .requester = $post.author' < ./requests/updated_post.json)
 
@@ -334,7 +350,7 @@ function update_post() {
 
 function get_posts() {
     post=$(new_post)
-    id=$(jq '.board' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g' )
+    id=$(jq '.board' <<< "$post" | sed -E 's#ObjectID|"|\(|\)|\\##g' )
     url="$baseurl/boards/$id"
 
     n_new_posts "$id" 5
@@ -346,8 +362,8 @@ function delete_post() {
     post=$(get_post)
     echo "new post:"
     echo "$post" | jq
-    boardid=$(jq '.board' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
-    postid=$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+    boardid=$(jq '.board' <<< "$post" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    postid=$(jq '.id' <<< "$post" | sed -E 's#ObjectID|"|\(|\)|\\##g')
 
     url="$baseurl/boards/$boardid/posts/$postid"
 
@@ -372,10 +388,10 @@ function search_board_by_name() {
 function search_post() {
     name=$1
     post=$(get_post)
-    id=$(jq '.id' <<< "$post" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+    id=$(jq '.id' <<< "$post" | sed -E 's#ObjectID|"|\(|\)|\\##g')
     post2=$(jq "del(.id) | .title |= \"$name\"" <<< "$post")
     post2=$(jq --argjson post "$post2" '.post |= $post' <<< '{ "post": "" }')
-    board=$(jq '.board' <<< "$post2" | sed -E -e 's#ObjectID|"|\(|\)|\\##g')
+    board=$(jq '.board' <<< "$post2" | sed -E 's#ObjectID|"|\(|\)|\\##g')
 
     url="$baseurl/boards/$board/posts"
     curl -X POST "$url"                    \
