@@ -189,7 +189,7 @@ func idFromParams(c *gin.Context) (primitive.ObjectID, error) {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrObjectIDConv,
 			"wrong id",
-			"message", err,
+			"message", err, id,
 		))
 		return primitive.NilObjectID, msgs.ErrObjectIDConv
 	}

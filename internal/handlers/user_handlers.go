@@ -6,16 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
+	"redoot/internal/msgs"
+	"redoot/internal/types"
 	"sync"
 	"time"
 
-	"redoot/internal/msgs"
-	"redoot/internal/types"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func NewUser(c *gin.Context, users *mongo.Collection) {
@@ -44,6 +45,25 @@ func NewUser(c *gin.Context, users *mongo.Collection) {
 		debugJSON, _ := json.MarshalIndent(usr, "", "\t")
 		log.Debug(msgs.DebugJSON, "usr", string(debugJSON))
 	}
+
+	ok := usr.IsTaken()
+	if !ok {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrTaken,
+			"username is already taken",
+		))
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(usr.Password), 4)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrEncryption,
+			"password exceeded the length of 72",
+		))
+		return
+	}
+	usr.Password = string(hash)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
@@ -142,15 +162,23 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 	}
 
 	var bdy struct {
-		User      types.User `json:"user"`
-		Requester types.User `json:"requester"`
+		User      types.User        `json:"user"`
+		Requester types.Credentials `json:"requester"`
 	}
+
 	err = decodeBody(c, &bdy)
 	if err != nil {
 		return
 	}
 
-	log.Debug("ids", objid.String(), bdy.Requester.ID.String())
+	if err = bdy.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user is wasn't authorized",
+		))
+		return
+	}
+
 	if objid != bdy.Requester.ID {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrForbidden,
@@ -220,7 +248,7 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
-	filter := bson.M{ "_id": objid, }
+	filter := bson.M{"_id": objid}
 
 	deleteResult, err := users.DeleteOne(ctx, filter)
 	if err != nil {

@@ -8,6 +8,8 @@ import (
 
 	"redoot/internal/handlers"
 	"redoot/internal/msgs"
+	"redoot/internal/types"
+
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
@@ -110,6 +112,8 @@ func main() {
 	users := db.Collection("users")
 	boards := db.Collection("boards")
 	posts := db.Collection("posts")
+
+	types.Collections.Users = users
 
 	r := gin.Default()
 

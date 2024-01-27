@@ -8,7 +8,7 @@ require("project").command({
 })
 
 require("project").registers({
-    m = ":e server/src/main.go\n",
+    m = ":e cmd/main.go\n",
     j = [[0wye$a<Space>`json:"<C-R>""`<Esc>bb~]],
     b = ":e internal/handlers/board_handlers.go\n",
     u = ":e internal/handlers/user_handlers.go\n",

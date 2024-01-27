@@ -41,15 +41,6 @@ search_post "outragous title"         # search for a post with title
 
 baseurl="localhost:8080"
 
-# Make a post
-function new_post() {
-    curl -X POST "$baseurl/posts"            \
-         -H 'Content-Type: application/json' \
-         -d '@./requests/post_test.json'     \
-         2>/dev/null                         \
-         | jq
-}
-
 # Get all users
 function get_users() {
     curl -X GET $baseurl/users 2>/dev/null | jq
@@ -67,9 +58,11 @@ function bad_email() {
 
 # Create new user
 function new_user() {
+    name=$(bin/generator --strip)
+    body=$(jq ".user.name |= . + \"-$name\"" < requests/user_test.json)
     curl -X POST $baseurl/users              \
          -H 'Content-Type: application/json' \
-         -d '@./requests/user_test.json'     \
+         -d "$body"                          \
          2>/dev/null                         \
          | jq
 }

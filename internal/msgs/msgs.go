@@ -17,16 +17,19 @@ type respError struct {
 var (
 	ErrBadOptions        = errors.New("bad options provided for db operation")
 	ErrDecode            = errors.New("failed decoding response")
+	ErrEncryption        = errors.New("failed to encrypt the password")
 	ErrFailedToGetParams = errors.New("failed to read params")
 	ErrForbidden         = errors.New("action is forbidden")
 	ErrInternal          = errors.New("an internal error has occurred")
 	ErrNotFound          = errors.New("resource not found")
 	ErrObjectIDConv      = errors.New("failed creating objectid from string")
-	ErrTypeConn          = errors.New("Connection error: ")
+	ErrTaken             = errors.New("name is taken")
+	ErrTypeConn          = errors.New("Connection error")
 	ErrUpdateFailed      = errors.New("failed to update the user")
 	ErrUserCreation      = errors.New("failed creating user")
-	ErrWrongFormat       = errors.New("wrong body format")
 	ErrWrongEmailFormat  = errors.New("email not formated properly")
+	ErrWrongFormat       = errors.New("wrong body format")
+	ErrNotAuthorized     = errors.New("credentials not authorized")
 )
 
 // debug
@@ -40,13 +43,16 @@ var msgmap = map[error]int{
 	ErrBadOptions:        http.StatusInternalServerError,
 	ErrDecode:            http.StatusInternalServerError,
 	ErrFailedToGetParams: http.StatusInternalServerError,
-	ErrForbidden:         http.StatusForbidden,
 	ErrInternal:          http.StatusInternalServerError,
-	ErrNotFound:          http.StatusNotFound,
 	ErrObjectIDConv:      http.StatusBadRequest,
+	ErrTaken:             http.StatusBadRequest,
 	ErrUpdateFailed:      http.StatusBadRequest,
-	ErrWrongFormat:       http.StatusBadRequest,
 	ErrWrongEmailFormat:  http.StatusBadRequest,
+	ErrWrongFormat:       http.StatusBadRequest,
+	ErrEncryption:        http.StatusBadRequest,
+	ErrForbidden:         http.StatusForbidden,
+	ErrNotFound:          http.StatusNotFound,
+	ErrNotAuthorized:     http.StatusUnauthorized,
 }
 
 func ReportError(err error, content string, info ...any) (int, respError) {

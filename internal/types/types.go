@@ -3,18 +3,21 @@ package types
 import (
 	"context"
 	"errors"
+	"redoot/internal/msgs"
 	"slices"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
 	Administrators []User
 	Collections    = struct {
-		Admins *mongo.Collection
+		Admins []User
+		Users  *mongo.Collection
 		Client *mongo.Client
 	}{}
 )
@@ -74,6 +77,17 @@ func (u User) Equal(o User) bool {
 	return true
 }
 
+func (u User) IsTaken() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	err := Collections.Users.FindOne(ctx, bson.M{
+		"name": u.Name,
+	}).Decode(nil)
+
+	return err == mongo.ErrNoDocuments
+}
+
 type Board struct {
 	ID         primitive.ObjectID   `json:"id,omitempty" bson:"_id,omitempty"`
 	Name       string               `json:"name" bson:"name"`
@@ -98,6 +112,53 @@ type Comment struct {
 	Author primitive.ObjectID `json:"author" bson:"author"`
 	Post   primitive.ObjectID `json:"post" bson:"post"`
 	Body   string             `json:"body" bson:"body"`
+}
+
+type Credentials struct {
+	Name     string
+	Password string
+	authorized bool
+}
+
+func (c *Credentials) Authorize() error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	if Collections.Users == nil {
+		return errors.New("missing users collection in Collections struct; types package")
+	}
+
+	var usr User
+	err := Collections.Users.FindOne(ctx, bson.M{"name": c.Name}).Decode(&usr)
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(c.Password))
+	if err != nil {
+		return err
+	}
+
+	c.authorized = true
+
+	return nil
+}
+
+func (c Credentials) ToUser() (User, error) {
+	if !c.authorized {
+		return User{}, msgs.ErrNotAuthorized
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	var usr User
+	err := Collections.Users.FindOne(ctx, bson.M{"name": c.Name}).Decode(&usr)
+	if err != nil {
+		return User{}, err
+	}
+
+	return usr, nil
 }
 
 func AddAdministrators(newAdmins ...User) {
