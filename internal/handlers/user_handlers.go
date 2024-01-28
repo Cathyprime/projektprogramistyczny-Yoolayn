@@ -271,7 +271,7 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 		return
 	}
 
-	if usr.ID != objid {
+	if objid != usr.ID {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrForbidden,
 			"action forbidden",

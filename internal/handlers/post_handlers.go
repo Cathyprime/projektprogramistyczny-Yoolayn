@@ -35,6 +35,18 @@ func NewPost(c *gin.Context, posts *mongo.Collection) {
 		return
 	}
 
+	usr, err := body.Requester.ToUser()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"skill issue",
+			"message", err,
+		))
+		return
+	}
+
+	body.Post.Author = usr.ID
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
@@ -173,7 +185,7 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 		return
 	}
 
-	user, err := bdy.Requester.ToUser()
+	usr, err := bdy.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
@@ -183,7 +195,7 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 		return
 	}
 
-	if !(types.IsAdmin(user) || types.IsModerator(board, user) || post.Author == user.ID) {
+	if !(types.IsAdmin(usr) || types.IsModerator(board, usr) || post.Author == usr.ID) {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrForbidden,
 			"action is forbidden!",
@@ -241,7 +253,7 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	if err := bdy.Requester.Authorize(); err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrNotAuthorized,
-			"user not authorized",
+			"user not authorized, here",
 			"error", err,
 		))
 		return
@@ -267,7 +279,7 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 		return
 	}
 
-	user, err := bdy.Requester.ToUser()
+	usr, err := bdy.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
@@ -277,7 +289,7 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 		return
 	}
 
-	if !(types.IsAdmin(user) || types.IsModerator(board, user) || post.Author == user.ID) {
+	if !(types.IsAdmin(usr) || types.IsModerator(board, usr) || post.Author == usr.ID) {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrForbidden,
 			"action is forbidden!",

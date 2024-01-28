@@ -27,8 +27,8 @@
     - (x) Search for post:              GET         \/api/:boardName/posts?
 
 *** Comments:
-    - ( ) Create a comment:             POST         \/api/:boardName/:postId/comments
-    - ( ) Read all comments on a post:  GET          \/api/:boardName/:postId/comments
-    - ( ) Read a specific comment:      GET          \/api/:boardName/:postId/comments/:commentId
+    - (x) Create a comment:             POST         \/api/:boardName/:postId/comments
+    - (x) Read all comments on a post:  GET          \/api/:boardName/:postId/comments
+    - (x) Read a specific comment:      GET          \/api/:boardName/:postId/comments/:commentId
     - ( ) Update a comment:             PUT          \/api/:boardName/:postId/comments/:commentId
     - ( ) Delete a comment:             DELETE       \/api/:boardName/:postId/comments/:commentId

@@ -208,6 +208,7 @@ function new_board() {
 
     for x in $(seq 1 "${1:-5}"); do
         post=$(add_then_get)
+        echo "$post"
         if ((x == 1)); then
             owner="$post"
         fi
@@ -299,11 +300,14 @@ function add_then_delete() {
 }
 
 function new_post() {
-    id=$(add_then_get_board | jq '.id')
-    author=$(add_then_get | jq '.id')
-    filler="{ \"author\": $author, \"board\": $id }"
+    id=$(add_then_get_board | jq '.response.id')
+    author=$(add_then_get | jq '.password = "password1"')
+    auth_id=$(jq '.id' <<< "$author")
+    filler="{ \"author\": $auth_id, \"board\": $id }"
     url="$baseurl/boards/${id//\"/}/posts"
     body=$(jq --argjson filler "$filler" '.post |= ( .author = $filler.author | .board = $filler.board )' < ./requests/post_test.json)
+
+    body=$(jq -n "{post: $(jq '.post' <<< "$body"), requester: {name: $(jq '.name' <<< "$author"), password: $(jq '.password' <<< "$author")}}")
 
     curl -X POST "$url"                     \
         -H 'Content-Type: application/json' \
@@ -406,6 +410,73 @@ function search_post() {
         | jq
 }
 
+function new_comment() {
+    post=$(get_post)
+    id=$(jq '.id' <<< "$post" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    board=$(jq '.board' <<< "$post" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    user=$(add_then_get | jq '.password = "password1"')
+    url="$baseurl/boards/$board/posts/$id/comments"
+    data="{\"user\": $user, \"post\": $post}"
+
+    out=$(
+    curl -X POST "$url" \
+        -H 'Content-Type: application/json'\
+        -d "$(jq -n --argjson d "$data" '{comment: {author: $d.user.id, post: $d.post.id, body: "a comment"}, requester: {name: $d.user.name, password: "password1"}}')" \
+        2>/dev/null
+    )
+    jq ". + {\"board\": \"$board\", \"post\": \"$id\"}" <<< "$out"
+}
+
+function get_comment() {
+    comment=$(new_comment)
+    board=$(jq '.board' <<< "$comment" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    post=$(jq '.post' <<< "$comment" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    id=$(jq '.id' <<< "$comment" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+
+    url="$baseurl/boards/$board/posts/$post/comments/$id"
+
+    curl -X GET "$url" 2>/dev/null | jq
+}
+
+function n_new_comments() {
+    first=$(new_comment)
+    id=$(jq '.id' <<< "$first" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    echo "$id"
+    board=$(jq '.board' <<< "$first" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    post=$(jq '.post' <<< "$first" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    url="$baseurl/boards/$board/posts/$post/comments"
+    author=$(curl -X GET "$url/$id" 2>/dev/null | jq '.author' | sed -E 's#ObjectID|"|\(|\)|\\##g')
+    user=$(curl -X GET "$baseurl/users/$author" 2>/dev/null | jq '.password = "password1"')
+    echo "$user"
+    fill="{\"name\": $(jq '.name' <<< "$user"), \"password\": \"password1\"}"
+    body=$(jq --argjson fill "$fill" '.requester = $fill' ./requests/comment_test.json | jq --arg post "$post" --arg author "$author" '.comment |= (.author = $author | .post = $post)')
+
+    for x in $(seq 1 "${1:-5}"); do
+        jq --arg x "$x" '.comment.body |= . + $x' <<< "$body" |
+            curl -X POST "$url" \
+            -H 'Content-Type: application/json'\
+            --data-binary @- 2>/dev/null | jq
+    done
+
+    curl -X GET "$url" 2>/dev/null | jq
+}
+
+function get_comments() {
+    local board
+    local post
+    for x in $(seq 1 3); do
+        comment=$(new_comment)
+        if ((x == 1)); then
+            board=$(jq '.board' <<< "$comment" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+            post=$(jq '.post' <<< "$comment" | sed -E 's#ObjectID|"|\(|\)|\\##g')
+        fi
+    done
+
+    url="$baseurl/boards/$board/posts/$post/comments"
+    
+    curl -X GET "$url" | jq
+}
+
 function jobs() {
     case "$1" in
         "") builtin jobs ;;
@@ -420,5 +491,5 @@ function exit_req() {
     exit 0
 }
 
-trap "kill \$(jobs -P)" INT
+# trap "kill \$(jobs -P)" INT
 # trap exit_req EXIT

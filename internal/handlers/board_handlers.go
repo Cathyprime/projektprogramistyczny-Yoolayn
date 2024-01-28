@@ -46,6 +46,24 @@ func NewBoard(c *gin.Context, boards *mongo.Collection) {
 		return
 	}
 
+	usr, err := body.Requester.ToUser()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"skill issue",
+			"error", err,
+		))
+		return
+	}
+
+	if body.Board.Owner != usr.ID {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"can't create board for someone else",
+		))
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
@@ -248,7 +266,7 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 		return
 	}
 
-	user, err := body.Requester.ToUser()
+	usr, err := body.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
@@ -257,7 +275,7 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 		return
 	}
 
-	if !(types.IsAdmin(user) || types.IsModerator(board, user) || board.Owner == user.ID) {
+	if !(types.IsAdmin(usr) || types.IsModerator(board, usr) || board.Owner == usr.ID) {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrForbidden,
 			"action is forbidden!",

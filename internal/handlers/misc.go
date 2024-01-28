@@ -71,7 +71,7 @@ func Interrupt(s *http.Server, collections ...*mongo.Collection) {
 	}
 }
 
-func commentIdParams(c *gin.Context) (primitive.ObjectID, primitive.ObjectID, primitive.ObjectID, error) {
+func commentIdParams(c *gin.Context) (boardObjId primitive.ObjectID, postObjId primitive.ObjectID, commentObjId primitive.ObjectID, err error) {
 	boardId, ok := c.Params.Get("id")
 	if !ok {
 		c.AbortWithStatusJSON(msgs.ReportError(
@@ -81,7 +81,7 @@ func commentIdParams(c *gin.Context) (primitive.ObjectID, primitive.ObjectID, pr
 		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrFailedToGetParams
 	}
 
-	boardObjId, err := primitive.ObjectIDFromHex(boardId)
+	boardObjId, err = primitive.ObjectIDFromHex(boardId)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrObjectIDConv,
@@ -100,7 +100,7 @@ func commentIdParams(c *gin.Context) (primitive.ObjectID, primitive.ObjectID, pr
 		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrFailedToGetParams
 	}
 
-	postObjId, err := primitive.ObjectIDFromHex(postId)
+	postObjId, err = primitive.ObjectIDFromHex(postId)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrObjectIDConv,
@@ -119,7 +119,7 @@ func commentIdParams(c *gin.Context) (primitive.ObjectID, primitive.ObjectID, pr
 		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, msgs.ErrFailedToGetParams
 	}
 
-	commentObjId, err := primitive.ObjectIDFromHex(commentId)
+	commentObjId, err = primitive.ObjectIDFromHex(commentId)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrObjectIDConv,

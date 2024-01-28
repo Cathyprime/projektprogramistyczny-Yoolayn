@@ -112,6 +112,7 @@ func main() {
 	users := db.Collection("users")
 	boards := db.Collection("boards")
 	posts := db.Collection("posts")
+	comments := db.Collection("comments")
 
 	types.Collections.Users = users
 
@@ -138,12 +139,16 @@ func main() {
 	r.DELETE("/boards/:id/posts/:postId", func(c *gin.Context) { handlers.DeletePost(c, posts, boards, users) })
 	r.GET("/boards/:id/posts/search", func(c *gin.Context) { handlers.SearchPost(c, posts) })
 
+	r.POST("/boards/:id/posts/:postId/comments", func(c *gin.Context) { handlers.CreateComment(c, comments) })
+	r.GET("/boards/:id/posts/:postId/comments/:commentId", func(c *gin.Context) { handlers.GetComment(c, comments) })
+	r.GET("/boards/:id/posts/:postId/comments", func(c *gin.Context) { handlers.GetComments(c, comments) })
+
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: r,
 	}
 
-	go handlers.Interrupt(srv, users, boards, posts)
+	go handlers.Interrupt(srv, users, boards, posts, comments)
 
 	cancel()
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
