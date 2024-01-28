@@ -253,7 +253,7 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	if err := bdy.Requester.Authorize(); err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrNotAuthorized,
-			"user not authorized, here",
+			"user not authorized",
 			"error", err,
 		))
 		return

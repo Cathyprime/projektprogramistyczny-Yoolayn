@@ -142,6 +142,11 @@ func main() {
 	r.POST("/boards/:id/posts/:postId/comments", func(c *gin.Context) { handlers.CreateComment(c, comments) })
 	r.GET("/boards/:id/posts/:postId/comments/:commentId", func(c *gin.Context) { handlers.GetComment(c, comments) })
 	r.GET("/boards/:id/posts/:postId/comments", func(c *gin.Context) { handlers.GetComments(c, comments) })
+	r.PUT("/boards/:id/posts/:postId/comments/:commentId", func(c *gin.Context) { handlers.UpdateComment(c, boards, comments) })
+	r.DELETE("/boards/:id/posts/:postId/comments/:commentId", func(c *gin.Context) { handlers.DeleteComment(c, boards, comments) })
+
+	r.POST("/export", func(c *gin.Context) { handlers.ExportToFile(c, users, boards, posts, comments) })
+	r.POST("/import", func(c *gin.Context) { handlers.ImportFromFile(c, users, boards, posts, comments) })
 
 	srv := &http.Server{
 		Addr:    ":8080",

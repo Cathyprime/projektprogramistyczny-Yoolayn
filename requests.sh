@@ -208,7 +208,6 @@ function new_board() {
 
     for x in $(seq 1 "${1:-5}"); do
         post=$(add_then_get)
-        echo "$post"
         if ((x == 1)); then
             owner="$post"
         fi
@@ -242,7 +241,7 @@ function fill_dummy_users() {
 }
 
 function add_then_get_board() {
-    board=$(new_board 3)
+    board=$(new_board 1)
     id=$(jq '.response.id' <<< "$board" | sed -E 's#ObjectID|"|\(|\)|\\##g')
     url="$baseurl/boards/$id"
 
@@ -318,13 +317,16 @@ function new_post() {
 
 function n_new_posts() {
     id=$1
-    author=$(add_then_get | jq '.id')
-    filler="{\"author\": $author, \"board\": \"$id\"}"
+    author=$(add_then_get)
+    author_id=$(jq '.id' <<< "$author")
+    filler="{\"author\": $author_id, \"board\": \"$id\"}"
     url="$baseurl/boards/$id/posts"
 
     body=$(jq --argjson filler "$filler" '.post |= ( .author = $filler.author | .board = $filler.board )' < ./requests/post_test.json)
+    requester="{\"requester\": {\"name\":$(jq '.name' <<< "$author"), \"password\": \"password1\"}}"
+    body=$(jq -n --argjson requester "$requester" --argjson body "$body" '$body + $requester')
 
-    for _ in $(seq 1 "$2"); do
+    for _ in $(seq 1 "${2:-5}"); do
         curl -X POST "$url" \
             -H 'Content-Type: application/json' \
             --data-binary @- <<< "$body"        \
@@ -436,6 +438,10 @@ function get_comment() {
     url="$baseurl/boards/$board/posts/$post/comments/$id"
 
     curl -X GET "$url" 2>/dev/null | jq
+}
+
+function update_comment() {
+    comment=$(get_comment)
 }
 
 function n_new_comments() {

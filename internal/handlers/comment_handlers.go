@@ -143,3 +143,202 @@ func GetComments(c *gin.Context, commentsColl *mongo.Collection) {
 	log.Debug(msgs.DebugStruct, "users", fmt.Sprintf("%#v\n", comments))
 	c.JSON(http.StatusOK, comments)
 }
+
+func UpdateComment(c *gin.Context, boards, comments *mongo.Collection) {
+	boardId, _, commentId, err := commentIdParams(c)
+	if err != nil {
+		return
+	}
+
+	var bdy struct {
+		Comment types.Comment `json:"comment"`
+		Requester types.Credentials `json:"requester"`
+	}
+	err = decodeBody(c, &bdy)
+	if err != nil {
+		return
+	}
+
+	if err := bdy.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+			"error", err,
+		))
+		return
+	}
+
+	usr, err := bdy.Requester.ToUser()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting user",
+		))
+		return
+	}
+
+	var board types.Board
+	err = getAndConvert(boards, boardId, &board)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"board making skill issue",
+		))
+		return
+	}
+
+	var comment types.Comment
+	err = getAndConvert(comments, commentId, &comment)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"comment making skill issue",
+		))
+		return
+	}
+
+	if !(types.IsAdmin(usr) || types.IsModerator(board, usr) || comment.Author == usr.ID) {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"action is forbidden!",
+			"UpdateBoard", "is neither an admin, moderator nor owner",
+		))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	update := bson.M{"$set": bdy.Comment}
+
+<<<<<<< HEAD
+	updateResult, err := comments.UpdateByID(ctx, commentId, update)
+=======
+	updateResult, err := boards.UpdateByID(ctx, commentId, update)
+>>>>>>> ebcdef0 (checkpoint(server): update comments)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"options failure",
+			"UpdateComment", err,
+		))
+		return
+	}
+
+	if updateResult.ModifiedCount == 0 {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrUpdateFailed,
+<<<<<<< HEAD
+			"failed to update the comment",
+			"UpdateComment", updateResult,
+=======
+			"failed to update the board",
+			"UpdateBoard", updateResult,
+>>>>>>> ebcdef0 (checkpoint(server): update comments)
+		))
+		return
+	}
+	c.JSON(http.StatusAccepted, struct {
+		Code   int    `json:"code"`
+		Status string `json:"status"`
+	}{
+<<<<<<< HEAD
+		Code:   http.StatusOK,
+		Status: "OK",
+	})
+}
+
+func DeleteComment(c *gin.Context, boards, comments *mongo.Collection) {
+	boardId, _, commentId, err := commentIdParams(c)
+	if err != nil {
+		return
+	}
+
+	var bdy struct {
+		Requester types.Credentials `json:"requester"`
+	}
+
+	err = decodeBody(c, &bdy)
+	if err != nil {
+		return
+	}
+
+	if err := bdy.Requester.Authorize(); err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+			"error", err,
+		))
+	}
+
+	usr, err := bdy.Requester.ToUser()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting user",
+		))
+	}
+
+	var board types.Board
+	err = getAndConvert(boards, boardId, &board)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"comment making skill issue",
+		))
+		return
+	}
+
+	var comment types.Comment
+	err = getAndConvert(comments, commentId, &comment)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"comment making skill issue",
+		))
+		return
+	}
+
+	if !(types.IsAdmin(usr) || types.IsModerator(board, usr) || comment.Author == usr.ID) {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrForbidden,
+			"action is forbidden!",
+			"UpdateBoard", "is neither an admin, moderator nor owner",
+		))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	deleteResult, err := comments.DeleteOne(ctx, bson.M{"_id": commentId})
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrBadOptions,
+			"options failure",
+			"DeleteComment", err,
+		))
+		return
+	}
+
+	if deleteResult.DeletedCount != 1 {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrDeleteFailed,
+			"failed to update the comment",
+			"DeleteComment", deleteResult,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, struct {
+		Code   int    `json:"code"`
+		Status string `json:"status"`
+	}{
+		Code:   http.StatusOK,
+=======
+		Code:   http.StatusCreated,
+>>>>>>> ebcdef0 (checkpoint(server): update comments)
+		Status: "OK",
+	})
+}
+>>>>>>> 20c2e6d (checkpoint(server): update comments)
