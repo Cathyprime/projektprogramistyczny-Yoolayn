@@ -40,7 +40,7 @@ var (
 )
 
 var msgmap = map[error]int{
-	ErrBadOptions:        http.StatusInternalServerError,
+	ErrBadOptions:        http.StatusBadRequest,
 	ErrDecode:            http.StatusInternalServerError,
 	ErrFailedToGetParams: http.StatusInternalServerError,
 	ErrInternal:          http.StatusInternalServerError,
