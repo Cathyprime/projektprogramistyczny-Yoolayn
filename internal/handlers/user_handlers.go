@@ -209,6 +209,16 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
+	hash, err := bcrypt.GenerateFromPassword([]byte(bdy.User.Password), bcrypt.MinCost)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrEncryption,
+			"password exceeded the length of 72",
+		))
+		return
+	}
+	bdy.User.Password = string(hash)
+
 	update := bson.M{"$set": bdy.User}
 
 	updateResult, err := users.UpdateByID(ctx, objid, update)
