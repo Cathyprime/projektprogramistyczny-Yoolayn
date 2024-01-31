@@ -4,26 +4,26 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"time"
-
 	"redoot/internal/handlers"
 	"redoot/internal/msgs"
 	"redoot/internal/types"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	mongoUri = "mongodb://localhost:27017"
-	auth     = options.Credential{
-		Username: "root",
-		Password: "example",
-	}
-)
+const mongoUri = "mongodb://localhost:27017"
+
+var auth = options.Credential{
+	Username: "root",
+	Password: "example",
+}
 
 type connection struct {
 	con *mongo.Client
@@ -33,6 +33,7 @@ type connection struct {
 func setupMongo(ch chan<- connection) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
+
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUri).SetAuth(auth))
 	if err != nil {
 		log.Fatal("invalid options: ", err)
@@ -56,6 +57,98 @@ func newStyle() (style *log.Styles) {
 	style.Key = pinkText
 	style.Value = grayText
 	return
+}
+
+func newMods() (types.User, types.User, types.User, types.User, types.User) {
+	id1, err := primitive.ObjectIDFromHex("65b9521f08488450adcbd92d")
+	if err != nil {
+		panic(err)
+	}
+	id2, err := primitive.ObjectIDFromHex("65b9521f08488450adcbd92e")
+	if err != nil {
+		panic(err)
+	}
+	id3, err := primitive.ObjectIDFromHex("65b9521f08488450adcbd92f")
+	if err != nil {
+		panic(err)
+	}
+	id4, err := primitive.ObjectIDFromHex("65b954c547c4f420dc911a6c")
+	if err != nil {
+		panic(err)
+	}
+	id5, err := primitive.ObjectIDFromHex("65b954c547c4f420dc911a6d")
+	if err != nil {
+		panic(err)
+	}
+
+	hash1, err := bcrypt.GenerateFromPassword([]byte("password1"), bcrypt.MinCost)
+	if err != nil {
+		panic(err)
+	}
+	hash2, err := bcrypt.GenerateFromPassword([]byte("password2"), bcrypt.MinCost)
+	if err != nil {
+		panic(err)
+	}
+	hash3, err := bcrypt.GenerateFromPassword([]byte("password3"), bcrypt.MinCost)
+	if err != nil {
+		panic(err)
+	}
+	hash4, err := bcrypt.GenerateFromPassword([]byte("password4"), bcrypt.MinCost)
+	if err != nil {
+		panic(err)
+	}
+	hash5, err := bcrypt.GenerateFromPassword([]byte("password5"), bcrypt.MinCost)
+	if err != nil {
+		panic(err)
+	}
+
+	mod1 := types.User{
+		ID: id1,
+		Name: "Mod1",
+		Bio: "Dictator",
+		Avatar: "base64encodedfile",
+		Pronouns: "over/lord",
+		Password: string(hash1),
+		Email: "mail@mail.com",
+	}
+	mod2 := types.User{
+		ID: id2,
+		Name: "Mod2",
+		Bio: "Dictator",
+		Avatar: "base64encodedfile",
+		Pronouns: "over/lord",
+		Password: string(hash2),
+		Email: "mail@mail.com",
+	}
+	mod3 := types.User{
+		ID: id3,
+		Name: "Mod3",
+		Bio: "Dictator",
+		Avatar: "base64encodedfile",
+		Pronouns: "over/lord",
+		Password: string(hash3),
+		Email: "mail@mail.com",
+	}
+	user := types.User{
+		ID: id4,
+		Name: "regular_user",
+		Bio: "Dictator",
+		Avatar: "base64encodedfile",
+		Pronouns: "over/lord",
+		Password: string(hash4),
+		Email: "mail@mail.com",
+	}
+	user2 := types.User{
+		ID: id5,
+		Name: "regular_user2",
+		Bio: "Dictator",
+		Avatar: "base64encodedfile",
+		Pronouns: "over/lord",
+		Password: string(hash5),
+		Email: "mail@mail.com",
+	}
+
+	return mod1, mod2, mod3, user, user2
 }
 
 const (
@@ -117,6 +210,44 @@ func main() {
 	types.Collections.Users = users
 
 	r := gin.Default()
+
+	id, err := primitive.ObjectIDFromHex("65b94ef156e6d7c59f478392")
+	if err != nil {
+		panic(err)
+	}
+
+	admin := types.User{
+		ID: id,
+		Name: "Administrator",
+		Bio: "Dictator",
+		Avatar: "base64encodedfile",
+		Pronouns: "over/lord",
+		Password: "passsword",
+		Email: "mail@mail.com",
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(admin.Password), bcrypt.MinCost)
+	if err != nil {
+		panic(err)
+	}
+	admin.Password = string(hash)
+	types.AddAdministrators(admin)
+
+	mod1, mod2, mod3, user, user2 := newMods()
+
+	toAdd := []interface{}{
+		admin,
+		mod1,
+		mod2,
+		mod3,
+		user,
+		user2,
+	}
+
+	_, err = users.InsertMany(ctx, toAdd)
+	if err != nil {
+		panic(err)
+	}
 
 	r.GET("/", func(c *gin.Context) { handlers.MostPopular(c, posts) })
 
