@@ -188,6 +188,16 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 		return
 	}
 
+	if oldUsr.Name != bdy.User.Name {
+		if ok := bdy.User.IsTaken(); !ok {
+			c.AbortWithStatusJSON(msgs.ReportError(
+				msgs.ErrTaken,
+				"username is taken",
+			))
+			return
+		}
+	}
+
 	usr, err := bdy.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
