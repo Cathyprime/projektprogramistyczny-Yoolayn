@@ -326,6 +326,7 @@ func findByFieldPosts(ctx context.Context, coll *mongo.Collection, key, value st
 	wg.Done()
 	log.Debug("No errors for", key, value)
 }
+
 func ExportToFile(c *gin.Context, users, boards, posts, comments *mongo.Collection) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
@@ -446,4 +447,169 @@ func ExportToFile(c *gin.Context, users, boards, posts, comments *mongo.Collecti
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func ImportFromFile(c *gin.Context, users, boards, posts, comments *mongo.Collection) {
+	body := struct {
+		Requester types.Credentials `json:"requester"`
+		Users     []types.User      `json:"users"`
+		Boards    []types.Board     `json:"boards"`
+		Posts     []types.Post      `json:"posts"`
+		Comments  []types.Comment   `json:"comments"`
+	}{}
+
+	err := decodeBody(c, &body)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"couldn't decode the body",
+		))
+		return
+	}
+
+	log.Debug(msgs.DebugStruct, "body", body)
+
+	err = body.Requester.Authorize()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+		))
+		log.Debug(msgs.DebugStruct, "requester", body.Requester)
+		return
+	}
+
+	usr, err := body.Requester.ToUser()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed to get the user",
+		))
+		return
+	}
+
+	if !types.IsAdmin(usr) {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"only admins have access to this feature",
+		))
+		return
+	}
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 4)
+
+	wg.Add(4)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+		defer cancel()
+
+		if len(body.Users) == 0 {
+			wg.Done()
+			return
+		}
+		inters := make([]interface{}, len(body.Users))
+		for i, p := range body.Users {
+			log.Debug("name", "action", "adding")
+			inters[i] = p
+		}
+		log.Debug("name", "action", "insert many")
+		_, err := users.InsertMany(ctx, inters)
+		if err != nil {
+			log.Debug("name", "action", "waiting")
+			errs <- err
+		}
+		wg.Done()
+		log.Debug("name", "action", "done")
+	}()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+		defer cancel()
+
+		if len(body.Boards) == 0 {
+			wg.Done()
+			return
+		}
+		inters := make([]interface{}, len(body.Boards))
+		for i, p := range body.Boards {
+			log.Debug("name", "action", "adding")
+			inters[i] = p
+		}
+		log.Debug("name", "action", "insert many")
+		_, err := boards.InsertMany(ctx, inters)
+		if err != nil {
+			log.Debug("name", "action", "waiting")
+			errs <- err
+		}
+		wg.Done()
+		log.Debug("name", "action", "done")
+	}()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+		defer cancel()
+
+		if len(body.Posts) == 0 {
+			wg.Done()
+			return
+		}
+		inters := make([]interface{}, len(body.Posts))
+		for i, p := range body.Posts {
+			log.Debug("posts", "action", "adding")
+			inters[i] = p
+		}
+		log.Debug("posts", "action", "insert many")
+		_, err := posts.InsertMany(ctx, inters)
+		if err != nil {
+			log.Debug("posts", "action", "waiting")
+			errs <- err
+		}
+		wg.Done()
+		log.Debug("posts", "action", "done")
+	}()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+		defer cancel()
+
+		if len(body.Comments) == 0 {
+			wg.Done()
+			return
+		}
+		inters := make([]interface{}, len(body.Comments))
+		for i, p := range body.Comments {
+			log.Debug("comments", "action", "adding")
+			inters[i] = p
+		}
+		log.Debug("comments", "action", "insert many")
+		_, err := comments.InsertMany(ctx, inters)
+		if err != nil {
+			log.Debug("comments", "action", "waiting")
+			errs <- err
+		}
+		wg.Done()
+		log.Debug("comments", "action", "done")
+	}()
+	log.Debug("waiting")
+	wg.Wait()
+	close(errs)
+
+	if len(errs) > 0 {
+		for e := range errs {
+			c.AbortWithStatusJSON(msgs.ReportError(
+				msgs.ErrInternal,
+				e.Error(),
+			))
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, struct {
+		Code    int    `json:"code"`
+		Content string `json:"content"`
+	}{
+		Code:    http.StatusCreated,
+		Content: "added",
+	})
 }
