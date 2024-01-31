@@ -237,6 +237,7 @@ func UpdateComment(c *gin.Context, boards, comments *mongo.Collection) {
 		Status: "OK",
 	})
 }
+<<<<<<< HEAD
 
 func DeleteComment(c *gin.Context, boards, comments *mongo.Collection) {
 	boardId, _, commentId, err := commentIdParams(c)
@@ -325,6 +326,8 @@ func DeleteComment(c *gin.Context, boards, comments *mongo.Collection) {
 		Status string `json:"status"`
 	}{
 		Code:   http.StatusOK,
+=======
+>>>>>>> c9990ee (fix(comments): actually work on comments collection)
 		Status: "OK",
 	})
 }
