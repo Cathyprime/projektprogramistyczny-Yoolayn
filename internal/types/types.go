@@ -23,15 +23,7 @@ var (
 	}{}
 )
 
-type PrivacyLevel int
-
 var ErrPostEditPermissions = errors.New("User cannot edit the post!")
-
-const (
-	Private PrivacyLevel = iota
-	Followers
-	Public
-)
 
 type ContentType int
 
@@ -42,15 +34,13 @@ const (
 )
 
 type User struct {
-	ID             primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
-	Name           string             `json:"name" bson:"name"`
-	Bio            string             `json:"bio" bson:"bio"`
-	Avatar         string             `json:"avatar" bson:"avatar"`
-	Pronouns       string             `json:"pronouns" bson:"pronouns"`
-	Password       string             `json:"password" bson:"password"`
-	Email          string             `json:"email" bson:"email"`
-	ProfilePrivacy PrivacyLevel       `json:"profilePrivacy" bson:"profilePrivacy"`
-	PostPrivacy    PrivacyLevel       `json:"postPrivacy" bson:"postPrivacy"`
+	ID       primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Name     string             `json:"name" bson:"name"`
+	Bio      string             `json:"bio" bson:"bio"`
+	Avatar   string             `json:"avatar" bson:"avatar"`
+	Pronouns string             `json:"pronouns" bson:"pronouns"`
+	Password string             `json:"password" bson:"password"`
+	Email    string             `json:"email" bson:"email"`
 }
 
 func (u User) Equal(o User) bool {
@@ -67,12 +57,6 @@ func (u User) Equal(o User) bool {
 		return false
 	}
 	if u.Password != o.Password {
-		return false
-	}
-	if u.ProfilePrivacy != o.ProfilePrivacy {
-		return false
-	}
-	if u.PostPrivacy != o.PostPrivacy {
 		return false
 	}
 	return true
