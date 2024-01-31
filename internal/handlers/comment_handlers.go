@@ -211,11 +211,7 @@ func UpdateComment(c *gin.Context, boards, comments *mongo.Collection) {
 
 	update := bson.M{"$set": bdy.Comment}
 
-<<<<<<< HEAD
 	updateResult, err := comments.UpdateByID(ctx, commentId, update)
-=======
-	updateResult, err := boards.UpdateByID(ctx, commentId, update)
->>>>>>> ebcdef0 (checkpoint(server): update comments)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrBadOptions,
@@ -228,13 +224,8 @@ func UpdateComment(c *gin.Context, boards, comments *mongo.Collection) {
 	if updateResult.ModifiedCount == 0 {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrUpdateFailed,
-<<<<<<< HEAD
 			"failed to update the comment",
 			"UpdateComment", updateResult,
-=======
-			"failed to update the board",
-			"UpdateBoard", updateResult,
->>>>>>> ebcdef0 (checkpoint(server): update comments)
 		))
 		return
 	}
@@ -242,7 +233,6 @@ func UpdateComment(c *gin.Context, boards, comments *mongo.Collection) {
 		Code   int    `json:"code"`
 		Status string `json:"status"`
 	}{
-<<<<<<< HEAD
 		Code:   http.StatusOK,
 		Status: "OK",
 	})
@@ -335,10 +325,6 @@ func DeleteComment(c *gin.Context, boards, comments *mongo.Collection) {
 		Status string `json:"status"`
 	}{
 		Code:   http.StatusOK,
-=======
-		Code:   http.StatusCreated,
->>>>>>> ebcdef0 (checkpoint(server): update comments)
 		Status: "OK",
 	})
 }
->>>>>>> 20c2e6d (checkpoint(server): update comments)
