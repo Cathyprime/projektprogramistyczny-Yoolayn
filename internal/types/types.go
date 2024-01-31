@@ -97,6 +97,8 @@ type Comment struct {
 	Author primitive.ObjectID `json:"author" bson:"author"`
 	Post   primitive.ObjectID `json:"post" bson:"post"`
 	Body   string             `json:"body" bson:"body"`
+	Votes  int                `json:"votes" bson:"votes"`
+}
 }
 
 type Credentials struct {
