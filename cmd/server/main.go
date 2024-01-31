@@ -118,6 +118,8 @@ func main() {
 
 	r := gin.Default()
 
+	r.GET("/", func(c *gin.Context) { handlers.MostPopular(c, posts) })
+
 	r.GET("/users", func(c *gin.Context) { handlers.GetUsers(c, users) })
 	r.POST("/users", func(c *gin.Context) { handlers.NewUser(c, users) })
 	r.GET("/users/:id", func(c *gin.Context) { handlers.GetUser(c, users) })

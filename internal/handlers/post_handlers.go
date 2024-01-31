@@ -15,6 +15,66 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+func MostPopular(c *gin.Context, posts *mongo.Collection) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	lookupAuthorStage := bson.D{
+		{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "users"},
+			{Key: "localField", Value: "author"},
+			{Key: "foreignField", Value: "_id"},
+			{Key: "as", Value: "authorInfo"},
+		}},
+	}
+
+	lookupBoardStage := bson.D{
+		{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "boards"},
+			{Key: "localField", Value: "board"},
+			{Key: "foreignField", Value: "_id"},
+			{Key: "as", Value: "boardInfo"},
+		}},
+	}
+
+	projectFieldsStage := bson.D{
+		{Key: "$project", Value: bson.D{
+			{Key: "title", Value: 1},
+			{Key: "bodyType", Value: 1},
+			{Key: "bodyContent", Value: 1},
+			{Key: "votes", Value: 1},
+			{Key: "author", Value: bson.D{{Key: "$arrayElemAt", Value: bson.A{"$authorInfo.name", 0}}}},
+			{Key: "board", Value: bson.D{{Key: "$arrayElemAt", Value: bson.A{"$boardInfo.name", 0}}}},
+		}},
+	}
+
+	sortStage := bson.D{{Key: "$sort", Value: bson.D{{Key: "votes", Value: -1}}}}
+
+	pipeline := mongo.Pipeline{lookupAuthorStage, lookupBoardStage, projectFieldsStage, sortStage}
+
+	cursor, err := posts.Aggregate(ctx, pipeline)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"connection failed",
+		))
+		return
+	}
+
+	var postssss []types.NicePost
+	err = cursor.All(ctx, &postssss)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"connection failed",
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, postssss)
+}
+
 func NewPost(c *gin.Context, posts *mongo.Collection) {
 	body := struct {
 		Post      types.Post        `json:"post"`
@@ -169,8 +229,8 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	err = getAndConvert(posts, postId, &post)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrInternal,
-			"post making skill issue",
+			msgs.ErrNotFound,
+			"post finding skill issue",
 		))
 		return
 	}
@@ -179,8 +239,8 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	err = getAndConvert(boards, boardId, &board)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrInternal,
-			"board making skill issue",
+			msgs.ErrNotFound,
+			"board finding skill issue",
 		))
 		return
 	}
@@ -188,8 +248,8 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	usr, err := bdy.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrInternal,
-			"skill issue making user",
+			msgs.ErrNotFound,
+			"skill issue finding user",
 			"error", err,
 		))
 		return
@@ -231,7 +291,7 @@ func UpdatePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 		Code   int    `json:"code"`
 		Status string `json:"status"`
 	}{
-		Code:   http.StatusCreated,
+		Code:   http.StatusAccepted,
 		Status: "OK",
 	})
 }
@@ -262,6 +322,7 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	var post types.Post
 	err = getAndConvert(posts, postId, &post)
 	if err != nil {
+		log.Fatal("HERE")
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrInternal,
 			err.Error(),
@@ -273,8 +334,8 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	err = getAndConvert(boards, boardId, &board)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrInternal,
-			"skill issue making board",
+			msgs.ErrNotFound,
+			"skill issue finding board",
 		))
 		return
 	}
@@ -282,8 +343,8 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	usr, err := bdy.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrInternal,
-			"skill issue making user",
+			msgs.ErrNotFound,
+			"skill issue finding user",
 			"error", err,
 		))
 		return
@@ -322,11 +383,9 @@ func DeletePost(c *gin.Context, posts *mongo.Collection, boards *mongo.Collectio
 	c.JSON(http.StatusOK, struct {
 		Code   int    `json:"code"`
 		Status string `json:"status"`
-		ID     int64  `json:"id"`
 	}{
-		Code:   http.StatusCreated,
+		Code:   http.StatusOK,
 		Status: "OK",
-		ID:     deleteResult.DeletedCount,
 	})
 }
 
