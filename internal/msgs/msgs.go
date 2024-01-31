@@ -30,6 +30,7 @@ var (
 	ErrWrongEmailFormat  = errors.New("email not formated properly")
 	ErrWrongFormat       = errors.New("wrong body format")
 	ErrNotAuthorized     = errors.New("credentials not authorized")
+	ErrDeleteFailed      = errors.New("failed to delete the user")
 )
 
 // debug
@@ -53,6 +54,7 @@ var msgmap = map[error]int{
 	ErrForbidden:         http.StatusForbidden,
 	ErrNotFound:          http.StatusNotFound,
 	ErrNotAuthorized:     http.StatusUnauthorized,
+	ErrDeleteFailed:      http.StatusBadRequest,
 }
 
 func ReportError(err error, content string, info ...any) (int, respError) {
