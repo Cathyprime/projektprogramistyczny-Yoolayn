@@ -169,8 +169,8 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	err = getAndConvert(boards, objid, &board)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrInternal,
-			"board making skill issue",
+			msgs.ErrNotFound,
+			"not found",
 		))
 		return
 	}
@@ -228,7 +228,7 @@ func UpdateBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 		Code   int    `json:"code"`
 		Status string `json:"status"`
 	}{
-		Code:   http.StatusCreated,
+		Code:   http.StatusAccepted,
 		Status: "OK",
 	})
 }
@@ -260,8 +260,8 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	err = getAndConvert(boards, objid, &board)
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrInternal,
-			"board making skill issue",
+			msgs.ErrNotFound,
+			"board finding skill issue",
 		))
 		return
 	}
@@ -269,8 +269,8 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	usr, err := body.Requester.ToUser()
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrInternal,
-			"user making skill issue",
+			msgs.ErrNotFound,
+			"user finding skill issue",
 		))
 		return
 	}
@@ -279,7 +279,7 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrForbidden,
 			"action is forbidden!",
-			"UpdateBoard", "is neither an admin, moderator nor owner",
+			"DeleteBoard", "is neither an admin, moderator nor owner",
 		))
 		return
 	}
@@ -309,11 +309,9 @@ func DeleteBoard(c *gin.Context, boards *mongo.Collection, users *mongo.Collecti
 	c.JSON(http.StatusOK, struct {
 		Code   int    `json:"code"`
 		Status string `json:"status"`
-		ID     int64  `json:"id"`
 	}{
-		Code:   http.StatusCreated,
+		Code:   http.StatusOK,
 		Status: "OK",
-		ID:     deleteResult.DeletedCount,
 	})
 }
 
