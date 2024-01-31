@@ -99,6 +99,14 @@ type Comment struct {
 	Body   string             `json:"body" bson:"body"`
 	Votes  int                `json:"votes" bson:"votes"`
 }
+
+type NicePost struct {
+	Title       string      `json:"title" bson:"title"`
+	BodyType    ContentType `json:"bodyType" bson:"bodyType"`
+	BodyContent string      `json:"bodyContent" bson:"bodyContent"`
+	Author      string      `json:"author" bson:"author"`
+	Votes       int         `json:"votes" bson:"votes"`
+	Board       string      `json:"board" bson:"board"`
 }
 
 type Credentials struct {

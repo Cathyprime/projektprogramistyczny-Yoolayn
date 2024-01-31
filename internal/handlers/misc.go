@@ -199,13 +199,18 @@ func idFromParams(c *gin.Context) (primitive.ObjectID, error) {
 func findByFieldUsers(ctx context.Context, coll *mongo.Collection, key, value string, ch chan<- findResultUsers, wg *sync.WaitGroup) {
 	log.Debug("Search started for", key, value)
 	resp := findResultUsers{}
-	filter := bson.D{
-		{Key: key, Value: value},
+
+	pipeline := mongo.Pipeline{
+		bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: key, Value: primitive.Regex{Pattern: value, Options: "i"}},
+			}},
+		},
 	}
 
-	cursor, err := coll.Find(ctx, filter)
+	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
-		log.Debug("Error occured in Find", key, value)
+		log.Debug("Error occurred in Find", key, value)
 		resp.users = nil
 		resp.err = err
 		ch <- resp
@@ -233,13 +238,18 @@ func findByFieldUsers(ctx context.Context, coll *mongo.Collection, key, value st
 func findByFieldBoards(ctx context.Context, coll *mongo.Collection, key, value string, ch chan<- findResultBoards, wg *sync.WaitGroup) {
 	log.Debug("Search started for", key, value)
 	resp := findResultBoards{}
-	filter := bson.D{
-		{Key: key, Value: value},
+
+	pipeline := mongo.Pipeline{
+		bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: key, Value: primitive.Regex{Pattern: value, Options: "i"}},
+			}},
+		},
 	}
 
-	cursor, err := coll.Find(ctx, filter)
+	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
-		log.Debug("Error occured in Find", key, value)
+		log.Debug("Error occurred in Find", key, value)
 		resp.boards = nil
 		resp.err = err
 		ch <- resp
@@ -281,13 +291,18 @@ func getAndConvert(c *mongo.Collection, id primitive.ObjectID, result any) error
 func findByFieldPosts(ctx context.Context, coll *mongo.Collection, key, value string, ch chan<- findResultPosts, wg *sync.WaitGroup) {
 	log.Debug("Search started for", key, value)
 	resp := findResultPosts{}
-	filter := bson.D{
-		{Key: key, Value: value},
+
+	pipeline := mongo.Pipeline{
+		bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: key, Value: primitive.Regex{Pattern: value, Options: "i"}},
+			}},
+		},
 	}
 
-	cursor, err := coll.Find(ctx, filter)
+	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
-		log.Debug("Error occured in Find", key, value)
+		log.Debug("Error occurred in Find", key, value)
 		resp.posts = nil
 		resp.err = err
 		ch <- resp
@@ -298,7 +313,7 @@ func findByFieldPosts(ctx context.Context, coll *mongo.Collection, key, value st
 	var posts []types.Post
 	err = cursor.All(ctx, &posts)
 	if err != nil {
-		log.Debug("Error occured in cursor.All", key, value)
+		log.Debug("Error occurred in cursor.All", key, value)
 		resp.posts = nil
 		resp.err = err
 		ch <- resp
