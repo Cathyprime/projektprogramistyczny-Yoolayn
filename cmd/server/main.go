@@ -124,6 +124,7 @@ func main() {
 	r.PUT("/users/:id", func(c *gin.Context) { handlers.UpdateUser(c, users) })
 	r.DELETE("/users/:id", func(c *gin.Context) { handlers.DeleteUser(c, users) })
 	r.GET("/users/search", func(c *gin.Context) { handlers.SearchUser(c, users) })
+	r.GET("/users/popular", func(c *gin.Context) { handlers.MostPopularUsers(c, users, posts, comments) })
 
 	r.GET("/boards", func(c *gin.Context) { handlers.GetBoards(c, boards) })
 	r.POST("/boards", func(c *gin.Context) { handlers.NewBoard(c, boards) })

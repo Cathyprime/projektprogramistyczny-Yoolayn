@@ -378,3 +378,76 @@ func SearchUser(c *gin.Context, users *mongo.Collection) {
 
 	c.JSON(http.StatusOK, values)
 }
+
+func MostPopularUsers(c *gin.Context, users, posts, comments *mongo.Collection) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	lookupPostsStage := bson.D{
+		{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "posts"},
+			{Key: "localField", Value: "_id"},
+			{Key: "foreignField", Value: "author"},
+			{Key: "as", Value: "posts"},
+		}},
+	}
+
+	lookupCommentsStage := bson.D{
+		{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "comments"},
+			{Key: "localField", Value: "_id"},
+			{Key: "foreignField", Value: "author"},
+			{Key: "as", Value: "comments"},
+		}},
+	}
+
+	projectStage := bson.D{
+		{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "name", Value: 1},
+			{Key: "votes", Value: bson.D{
+				{Key: "$add", Value: bson.A{
+					bson.D{{Key: "$sum", Value: "$posts.votes"}},
+					bson.D{{Key: "$sum", Value: "$comments.votes"}},
+				}},
+			}},
+		}},
+	}
+
+	sortStage := bson.D{
+		{Key: "$sort", Value: bson.D{
+			{Key: "votes", Value: -1},
+		}},
+	}
+
+	limitStage := bson.D{
+		{Key: "$limit", Value: 15},
+	}
+
+	pipeline := mongo.Pipeline{lookupPostsStage, lookupCommentsStage, projectStage, sortStage, limitStage}
+
+	cursor, err := users.Aggregate(ctx, pipeline)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"internal error reading from cursor",
+		))
+		return
+	}
+
+	var answers []struct {
+		Name  string `json:"name"`
+		Votes int    `json:"votes"`
+	}
+
+	err = cursor.All(ctx, &answers)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"internal server error",
+		))
+		return
+	}
+
+	c.AbortWithStatusJSON(http.StatusOK, answers)
+}
