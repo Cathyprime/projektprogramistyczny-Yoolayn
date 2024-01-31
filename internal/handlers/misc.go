@@ -326,3 +326,124 @@ func findByFieldPosts(ctx context.Context, coll *mongo.Collection, key, value st
 	wg.Done()
 	log.Debug("No errors for", key, value)
 }
+func ExportToFile(c *gin.Context, users, boards, posts, comments *mongo.Collection) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	var creds types.Credentials
+	err := decodeBody(c, &creds)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrWrongFormat,
+			"malformed body",
+		))
+		return
+	}
+
+	err = creds.Authorize()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"user not authorized",
+		))
+		return
+	}
+
+	usr, err := creds.ToUser()
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"internal error has occurred",
+		))
+		return
+	}
+
+	if !types.IsAdmin(usr) {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrNotAuthorized,
+			"only admins can access this feature",
+		))
+		return
+	}
+
+	result := struct {
+		Users    []types.User    `json:"users"`
+		Boards   []types.Board   `json:"boards"`
+		Posts    []types.Post    `json:"posts"`
+		Comments []types.Comment `json:"comments"`
+	}{}
+
+	cursor, err := users.Find(ctx, bson.M{})
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting users",
+		))
+		return
+	}
+
+	err = cursor.All(ctx, &result.Users)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed decoding users",
+		))
+		return
+	}
+
+	cursor, err = boards.Find(ctx, bson.M{})
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting boards",
+		))
+		return
+	}
+
+	err = cursor.All(ctx, &result.Boards)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed decoding boards",
+		))
+		return
+	}
+
+	cursor, err = posts.Find(ctx, bson.M{})
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting posts",
+		))
+		return
+	}
+
+	err = cursor.All(ctx, &result.Posts)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed decoding posts",
+		))
+		return
+	}
+
+	cursor, err = comments.Find(ctx, bson.M{})
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed getting comments",
+		))
+		return
+	}
+
+	err = cursor.All(ctx, &result.Comments)
+	if err != nil {
+		c.AbortWithStatusJSON(msgs.ReportError(
+			msgs.ErrInternal,
+			"failed decoding comments",
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
