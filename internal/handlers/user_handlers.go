@@ -180,10 +180,12 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 		return
 	}
 
-	if ok := bdy.User.IsTaken(); !ok {
+	var oldUsr types.User
+	err = getAndConvert(users, objid, &oldUsr)
+	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
-			msgs.ErrTaken,
-			"username is taken",
+			msgs.ErrInternal,
+			"user making skill issue",
 		))
 		return
 	}
@@ -235,7 +237,7 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrBadOptions,
-			"options failure",
+			"id taken",
 			"UpdateUser", err,
 		))
 		return
@@ -254,7 +256,7 @@ func UpdateUser(c *gin.Context, users *mongo.Collection) {
 		Code   int    `json:"code"`
 		Status string `json:"status"`
 	}{
-		Code:   http.StatusCreated,
+		Code:   http.StatusAccepted,
 		Status: "OK",
 	})
 }
@@ -309,7 +311,7 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	if err != nil {
 		c.AbortWithStatusJSON(msgs.ReportError(
 			msgs.ErrBadOptions,
-			"internal error",
+			"id taken",
 			"DeleteUser", err,
 		))
 		return
@@ -326,11 +328,9 @@ func DeleteUser(c *gin.Context, users *mongo.Collection) {
 	c.JSON(http.StatusOK, struct {
 		Code   int    `json:"code"`
 		Status string `json:"status"`
-		ID     int64  `json:"id"`
 	}{
-		Code:   http.StatusCreated,
+		Code:   http.StatusOK,
 		Status: "OK",
-		ID:     deleteResult.DeletedCount,
 	})
 }
 
@@ -349,6 +349,7 @@ func SearchUser(c *gin.Context, users *mongo.Collection) {
 	for k, s := range c.Request.URL.Query() {
 		for _, v := range s {
 			wg.Add(1)
+			log.Debug("searchuser", k, v)
 			go findByFieldUsers(ctx, users, k, v, ch, &wg)
 		}
 	}
